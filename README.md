@@ -1,2 +1,2 @@
 # DevolperRL.github.io
-First website
+are you bored at school? don't worry, try my websites ;)
