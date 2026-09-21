@@ -1,0 +1,8 @@
+Data source: Natural Earth 10m Bathymetry and Natural Earth 10m Coastline.
+Original shapefiles supplied by the user were converted to GeoJSON for browser use.
+Natural Earth data are available under the Natural Earth terms of use. See the original README files supplied with the datasets.
+
+sources links:
+
+Map data © https://data.humdata.org/dataset/hotosm_ita_sea_ports. Available under the Open Database License (ODbL).
+https://www.naturalearthdata.com/downloads/10m-physical-vectors/
