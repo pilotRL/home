@@ -1,0 +1,7 @@
+{
+"type": "FeatureCollection",
+"name": "hotosm_ita_sea_ports_lines_geojson",
+"features": [
+{ "type": "Feature", "properties": { "name": "Terminal del Golfo", "name:en": null, "amenity": null, "building": null, "port": "cargo", "operator:type": null, "addr:full": null, "addr:city": null, "source": null, "name:it": null, "osm_id": 2952205, "osm_type": "relations" }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ 9.8606479, 44.108082 ], [ 9.8583007, 44.107482 ], [ 9.8597263, 44.1062996 ], [ 9.8584697, 44.1060194 ], [ 9.8584512, 44.105362 ], [ 9.859929, 44.1057304 ], [ 9.8598369, 44.1058826 ], [ 9.8599198, 44.105962 ], [ 9.8600581, 44.1060017 ], [ 9.8604658, 44.1068753 ], [ 9.8598138, 44.1074346 ], [ 9.8600042, 44.1075625 ], [ 9.859995, 44.1076375 ], [ 9.8603176, 44.1077787 ], [ 9.8603637, 44.1077147 ], [ 9.8604712, 44.1077699 ], [ 9.8605388, 44.1078493 ], [ 9.8607293, 44.1078758 ], [ 9.8606479, 44.108082 ] ] ] } }
+]
+}
