@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MV NEPTUNE STAR — Bridge</title>
+
+<link href="https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl.js"></script>
+
+<style>
+:root {
+  color-scheme: dark;
+  --panel-bg: rgba(8,14,24,.86);
+  --panel-brd: rgba(120,160,210,.22);
+  --led-green: #4ade80;
+  --led-amber: #fbbf24;
+  --led-red:   #ff5566;
+  --led-cyan:  #4fd6ff;
+  --led-blue:  #8ecbff;
+  --text-dim:  #7c93b5;
+  --text:      #cfe0f5;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin:0; height:100%; overflow:hidden;
+  background:#05080f; color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+#map { position:absolute; inset:0; }
+
+#bridge {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  font-size: 11px;
+}
+#bridge.hidden { display: none; }
+
+.panel {
+  position: absolute;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-brd);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+  box-shadow: 0 4px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.panel-title {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-dim); padding: 6px 10px;
+  border-bottom: 1px solid var(--panel-brd);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+#topbar {
+  position: absolute; top: 10px; left: 10px; right: 10px; height: 56px;
+  display: flex; align-items: stretch; gap: 8px;
+  pointer-events: none;
+}
+#topbar .panel { position: relative; height: 100%; }
+#vessel {
+  flex: 1 1 40%;
+  display: flex; align-items: center; padding: 0 14px; gap: 16px;
+}
+#vessel .flag { width: 22px; height: 15px; background: #c8102e;
+  border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+  position: relative; }
+#vessel .flag::after { content:""; position:absolute; top:0; left:0; right:0; height:33%;
+  background:#fff; }
+#vessel .name { font-family: var(--mono); font-size: 15px; font-weight: 600;
+  letter-spacing: .06em; }
+#vessel .sub { color: var(--text-dim); font-size: 10px; letter-spacing: .06em; }
+#vessel .pill { background:#1b2b45; border:1px solid #2b446b;
+  padding: 3px 8px; border-radius: 999px; font-family: var(--mono); font-size: 10px; }
+#vessel .pill.live { background:#0b3d22; border-color:#1e6b3d; color: var(--led-green); }
+#vessel .pill.idle { background:#3a2a0b; border-color:#8b6212; color: var(--led-amber); }
+#vessel .pill.dead { background:#3a0d12; border-color:#7f1d1d; color: var(--led-red); }
+
+#voyage { flex: 1 1 30%; display: flex; align-items: center; padding: 0 14px; gap: 12px;
+  font-family: var(--mono); }
+#voyage .port { text-align: left; }
+#voyage .port small { display:block; color: var(--text-dim); font-size: 9px;
+  letter-spacing:.1em; text-transform: uppercase; }
+#voyage .port b { font-size: 13px; letter-spacing:.05em; }
+#voyage .arrow { flex: 1; height: 1px; background: linear-gradient(90deg,
+  transparent, var(--led-cyan), transparent); position: relative; }
+#voyage .arrow::after { content:"▶"; color: var(--led-cyan); font-size: 10px;
+  position: absolute; right: -2px; top: -7px; }
+
+#clock { flex: 0 0 220px; display: flex; align-items: center; justify-content: space-around;
+  font-family: var(--mono); padding: 0 10px; }
+#clock .tz { text-align: center; }
+#clock .tz small { display:block; color: var(--text-dim); font-size: 9px; letter-spacing:.1em; }
+#clock .tz b { font-size: 16px; letter-spacing:.05em; color: var(--led-cyan);
+  text-shadow: 0 0 8px rgba(79,214,255,.5); }
+
+#engine {
+  top: 78px; left: 10px; width: 260px; bottom: 108px;
+  display: flex; flex-direction: column;
+}
+#engine .body { padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+
+.eng-btn {
+  width: 100%; padding: 10px;
+  background: linear-gradient(180deg, #3a0d12, #210a0d);
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .14em; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s;
+}
+.eng-btn:hover { filter: brightness(1.15); }
+.eng-btn.running {
+  background: linear-gradient(180deg, #0b3d22, #062615);
+  border-color: #1e6b3d; color: var(--led-green);
+  box-shadow: 0 0 16px rgba(74,222,128,.2);
+}
+.eng-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--led-red); box-shadow: 0 0 6px var(--led-red);
+  flex: 0 0 auto;
+}
+.eng-btn.running .eng-dot {
+  background: var(--led-green); box-shadow: 0 0 8px var(--led-green);
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse { 50% { opacity: .4; } }
+
+.rpm { text-align: center; }
+.rpm .label { color: var(--text-dim); font-size: 9px; letter-spacing:.14em; text-transform: uppercase; }
+.rpm .val { font-family: var(--mono); font-size: 36px; line-height: 1;
+  color: var(--led-green); text-shadow: 0 0 14px rgba(74,222,128,.55); }
+.rpm.off .val { color: #475569; text-shadow: none; }
+.rpm .unit { color: var(--text-dim); font-size: 10px; letter-spacing:.1em; }
+.rpm .bar { height: 6px; background:#132133; border-radius: 3px; margin-top: 6px; overflow:hidden; position: relative; }
+.rpm .bar i { display:block; height: 100%; width: 0%; position: absolute; left: 0; top: 0;
+  background: linear-gradient(90deg, #22c55e, #a3e635, #fbbf24); transition: width .2s; }
+.rpm .bar i.ast { left: auto; right: 0;
+  background: linear-gradient(270deg, #f43f5e, #fb923c); }
+
+.telegraph {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 4px 6px;
+  font-family: var(--mono); font-size: 9px; align-items: center;
+}
+.telegraph .col { display: flex; flex-direction: column; gap: 3px; }
+.telegraph .step { padding: 3px 6px; border-radius: 3px; background:#101a29;
+  border:1px solid #1c2b41; color: var(--text-dim); letter-spacing:.05em;
+  cursor: pointer; user-select: none; transition: .15s;
+  text-align: center; }
+.telegraph .step:hover { border-color: #3a5d8a; color: var(--text); }
+.telegraph .step.on { background:#3a2a0b; color: var(--led-amber);
+  border-color:#8b6212; text-shadow: 0 0 6px rgba(251,191,36,.5); }
+.telegraph.disabled .step { cursor: not-allowed; opacity: .45; }
+.telegraph.disabled .step:hover { border-color: #1c2b41; color: var(--text-dim); }
+.telegraph .mid { font-size: 22px; color: var(--led-cyan); text-align: center;
+  text-shadow: 0 0 10px rgba(79,214,255,.5); }
+
+.rows { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px;
+  font-family: var(--mono); font-size: 11px; }
+.rows span:nth-child(odd) { color: var(--text-dim); letter-spacing:.04em; }
+.rows span:nth-child(even) { text-align: right; color: var(--text); }
+.rows .ok { color: var(--led-green); }
+.rows .warn { color: var(--led-amber); }
+.rows .alarm { color: var(--led-red); }
+
+.tanks { display: grid; gap: 6px; }
+.tank { display: grid; grid-template-columns: 60px 1fr 40px; gap: 6px; align-items:center;
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+.tank .bar { height: 6px; background:#132133; border-radius: 3px; overflow:hidden; }
+.tank .bar i { display:block; height:100%; transition: width .4s; }
+.tank .bar.fuel i { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.tank .bar.fw   i { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+.tank .bar.bw   i { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.tank b { color: var(--text); text-align:right; font-weight:500; }
+
+/* -------- RIGHT: COMMS -------- */
+#comms {
+  top: 78px; right: 10px; width: 300px; bottom: 108px;
+  display: flex; flex-direction: column;
+}
+#comms .body {
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+}
+
+.vhf-display {
+  background: #03060c; border: 1px solid #17283f; border-radius: 6px;
+  padding: 10px; font-family: var(--mono); text-align: center;
+  box-shadow: inset 0 0 18px rgba(79,214,255,.08);
+}
+.vhf-display .ch { font-size: 38px; line-height: 1; color: var(--led-cyan);
+  text-shadow: 0 0 14px rgba(79,214,255,.55); letter-spacing:.06em; }
+.vhf-display .ch small { font-size: 12px; color: var(--text-dim); letter-spacing:.1em;
+  display:block; margin-top: 4px; }
+.vhf-display .meta { display:flex; justify-content: space-between; margin-top: 6px;
+  color: var(--text-dim); font-size: 10px; }
+.vhf-display .meta b { color: var(--text); }
+
+/* VHF status row */
+.vhf-status {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 8px; border-radius: 4px;
+  background: #03060c; border: 1px solid #17283f;
+  font-family: var(--mono); font-size: 10px;
+}
+.vhf-ind {
+  padding: 2px 8px; border-radius: 3px;
+  font-weight: 600; letter-spacing: .1em;
+}
+.vhf-ind.idle { color: var(--text-dim); background: #132133; }
+.vhf-ind.rx   { color: var(--led-amber); background: #3a2a0b; animation: pulse .8s infinite; }
+.vhf-ind.tx   { color: #fff; background: #7f1d1d; animation: pulse .5s infinite; }
+.vhf-ind.scan { color: var(--led-cyan); background: #06304a; animation: pulse 1.2s infinite; }
+
+.vhf-bars { display: flex; gap: 2px; align-items: flex-end; height: 12px; }
+.vhf-bars i { width: 3px; background: #334155; border-radius: 1px; transition: .15s; }
+.vhf-bars i:nth-child(1) { height: 4px; }
+.vhf-bars i:nth-child(2) { height: 6px; }
+.vhf-bars i:nth-child(3) { height: 8px; }
+.vhf-bars i:nth-child(4) { height: 10px; }
+.vhf-bars i:nth-child(5) { height: 12px; }
+.vhf-bars.sig-1 i:nth-child(-n+1),
+.vhf-bars.sig-2 i:nth-child(-n+2),
+.vhf-bars.sig-3 i:nth-child(-n+3),
+.vhf-bars.sig-4 i:nth-child(-n+4),
+.vhf-bars.sig-5 i:nth-child(-n+5) { background: var(--led-green); box-shadow: 0 0 4px var(--led-green); }
+
+.vhf-ch-name { color: var(--text-dim); font-size: 9px; letter-spacing: .08em; }
+
+.vhf-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.vhf-keys button {
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 12px; padding: 8px 0;
+  border-radius: 4px; cursor: pointer; letter-spacing:.05em;
+  transition: .12s;
+}
+.vhf-keys button:hover { background:#1b2b45; }
+.vhf-keys button.active { background:#06304a; border-color:#0e7490;
+  color: var(--led-cyan); box-shadow: 0 0 10px rgba(79,214,255,.25); }
+.vhf-keys button.distress { background:#3a0d12; border-color:#7f1d1d; color:#fca5a5; }
+.vhf-keys button.distress.active { background:#7f1d1d; color:#fff; }
+
+.knobs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.knob { text-align: center; }
+.knob .dial { width: 46px; height: 46px; margin: 0 auto 4px;
+  border-radius: 50%; background: radial-gradient(circle at 35% 30%, #2b4a6f, #0b1626);
+  border: 1px solid #24405f; position: relative;
+  box-shadow: inset 0 0 8px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+  cursor: ns-resize; user-select: none; }
+.knob .dial:hover { border-color: #3a5d8a; }
+.knob .dial::after { content:""; position: absolute; width: 2px; height: 16px;
+  background: var(--led-cyan); top: 4px; left: 50%; transform-origin: 50% 19px;
+  transform: translateX(-50%) rotate(var(--angle, 0deg));
+  box-shadow: 0 0 6px rgba(79,214,255,.6); }
+.knob small { color: var(--text-dim); font-size: 9px; letter-spacing:.1em; text-transform: uppercase; }
+.knob b { font-family: var(--mono); font-size: 11px; }
+
+/* VHF action buttons */
+.vhf-actions {
+  display: grid; grid-template-columns: 1.2fr 1fr 44px 1.2fr; gap: 5px;
+}
+.vhf-action {
+  padding: 8px 0;
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  border-radius: 4px; cursor: pointer; transition: .12s;
+  font-weight: 600;
+}
+.vhf-action:hover { background: #1b2b45; }
+.vhf-action.ptt.active {
+  background: #7f1d1d; color: #fff; border-color: #ef4444;
+  box-shadow: 0 0 14px rgba(239,68,68,.55);
+  animation: pulse .5s infinite;
+}
+.vhf-action.on { background: #06304a; border-color: #0e7490; color: var(--led-cyan);
+  box-shadow: 0 0 10px rgba(79,214,255,.3); }
+.vhf-action.dsc { color: #fca5a5; border-color: #7f1d1d; }
+.vhf-action.dsc:hover { background: #3a0d12; }
+.vhf-action.dsc.armed {
+  background: #7f1d1d; color: #fff; border-color: #ef4444;
+  animation: blink .5s infinite;
+}
+.vhf-action.dsc.sent {
+  background: #450a0a; color: #fca5a5; border-color: #7f1d1d; cursor: not-allowed;
+  animation: none;
+}
+
+/* Radio log */
+.vhf-log-title {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 4px 2px 0;
+}
+.vhf-log-title span:last-child {
+  cursor: pointer; color: var(--text-dim); font-size: 9px;
+  transition: color .15s;
+}
+.vhf-log-title span:last-child:hover { color: var(--led-red); }
+
+.vhf-log {
+  flex: 1; min-height: 80px;
+  background: #03060c; border: 1px solid #17283f; border-radius: 6px;
+  padding: 6px 8px;
+  font-family: var(--mono); font-size: 10px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.vhf-log::-webkit-scrollbar { width: 5px; }
+.vhf-log::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+.vhf-log .entry {
+  display: grid; grid-template-columns: 52px 1fr;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+.vhf-log .entry .t { color: var(--text-dim); }
+.vhf-log .entry.rx  { color: var(--led-cyan); }
+.vhf-log .entry.tx  { color: var(--led-amber); }
+.vhf-log .entry.sys { color: var(--text-dim); font-style: italic; }
+.vhf-log .entry.ch  { color: #a78bfa; }
+.vhf-log .entry.dsc { color: var(--led-red); font-weight: 700;
+  background: rgba(127,29,29,.25); }
+
+@keyframes blink { 50% { opacity: .35; } }
+
+/* -------- CENTER: COMPASS + REPEATERS -------- */
+#nav {
+  position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px; pointer-events: none;
+}
+#nav .panel { position: relative; pointer-events: auto; }
+.compass {
+  width: 190px; height: 190px; position: relative;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0d1a29 45%, #060c15 100%);
+  border: 1px solid var(--panel-brd);
+  box-shadow: inset 0 0 24px rgba(79,214,255,.08), 0 4px 20px rgba(0,0,0,.5);
+}
+.compass .ring { position: absolute; inset: 6px; border-radius: 50%;
+  border: 1px dashed rgba(120,160,210,.25); }
+.compass .rose { position: absolute; inset: 0; }
+.compass .rose span { position: absolute; left: 50%; top: 50%;
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+  transform-origin: 0 0; }
+.compass .needle { position: absolute; left: 50%; top: 50%;
+  width: 3px; height: 84px; background: linear-gradient(180deg,
+    var(--led-red) 0 45%, var(--led-cyan) 55% 100%);
+  transform-origin: 50% 100%; border-radius: 2px;
+  transform: translate(-50%, -100%) rotate(0deg);
+  box-shadow: 0 0 12px rgba(79,214,255,.5); transition: transform .12s linear; }
+.compass .cap { position: absolute; left: 50%; top: 50%;
+  width: 10px; height: 10px; border-radius: 50%; background: #cfe0f5;
+  transform: translate(-50%, -50%); box-shadow: 0 0 10px #fff; }
+.compass .hdg { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center;
+  font-family: var(--mono); color: var(--led-cyan);
+  text-shadow: 0 0 10px rgba(79,214,255,.5); }
+.compass .hdg b { font-size: 22px; }
+.compass .hdg small { color: var(--text-dim); display:block; font-size: 9px;
+  letter-spacing:.14em; }
+.compass .follow-badge {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 9px; letter-spacing: .14em;
+  padding: 2px 8px; border-radius: 999px;
+  background: #06304a; color: var(--led-cyan); border: 1px solid #0e7490;
+  transition: .2s;
+}
+.compass .follow-badge.off { background: #1b2b45; color: var(--text-dim); border-color: #2b446b; }
+
+.repeater { width: 190px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.repeater .big { font-family: var(--mono); text-align: center; }
+.repeater .big small { color: var(--text-dim); font-size: 9px; letter-spacing:.14em;
+  text-transform: uppercase; display:block; }
+.repeater .big b { font-size: 26px; color: var(--led-cyan);
+  text-shadow: 0 0 10px rgba(79,214,255,.5); }
+.repeater .row { display: grid; grid-template-columns: 1fr auto;
+  font-family: var(--mono); font-size: 11px; }
+.repeater .row span:first-child { color: var(--text-dim); }
+.repeater .row span:last-child { color: var(--text); }
+
+.rudder { text-align: center; font-family: var(--mono); }
+.rudder .gauge { width: 160px; height: 60px; position: relative; margin: 0 auto;
+  background: radial-gradient(ellipse at 50% 100%, #0d1a29, #060c15);
+  border-radius: 90px 90px 4px 4px; border: 1px solid var(--panel-brd);
+  overflow: hidden; }
+.rudder .gauge .arc { position: absolute; left: 50%; bottom: 0;
+  width: 3px; height: 56px; background: var(--led-amber); transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 8px var(--led-amber);
+  transition: transform .08s linear; }
+.rudder .gauge .label { position: absolute; bottom: 4px; font-size: 9px; color: var(--text-dim); }
+.rudder .gauge .label.p { left: 6px; }
+.rudder .gauge .label.s { right: 6px; }
+.rudder b { font-size: 16px; color: var(--led-amber); }
+
+.rudder-ctrl {
+  display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 4px;
+  margin: 8px 0 4px;
+}
+.rudder-ctrl button {
+  padding: 7px 0;
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 10px; border-radius: 4px;
+  cursor: pointer; letter-spacing: .05em; user-select: none;
+  transition: .12s;
+}
+.rudder-ctrl button:hover { background: #1b2b45; }
+.rudder-ctrl button.active {
+  background: #06304a; border-color: #0e7490; color: var(--led-cyan);
+  box-shadow: 0 0 10px rgba(79,214,255,.35);
+}
+.rudder-ctrl button:disabled { opacity: .35; cursor: not-allowed; }
+
+/* -------- CHART TOOLS -------- */
+#tools {
+  top: 78px; left: 280px; width: 150px;
+}
+#tools .body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.tool-btn {
+  padding: 8px 10px;
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+  border-radius: 4px; cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 8px;
+  transition: .15s;
+}
+.tool-btn:hover { background: #1b2b45; }
+.tool-btn.active {
+  background: #06304a; border-color: #0e7490; color: var(--led-cyan);
+  box-shadow: 0 0 10px rgba(79,214,255,.3);
+}
+.tool-btn .dot-ind {
+  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+  background: #334155;
+}
+.tool-btn.active .dot-ind {
+  background: var(--led-cyan); box-shadow: 0 0 6px var(--led-cyan);
+}
+.tools-info {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-dim); padding: 2px 4px;
+}
+.tools-info b { color: var(--led-cyan); font-weight: 500; }
+
+/* -------- BOTTOM BAR -------- */
+#bottom {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; height: 90px;
+  display: flex; gap: 8px; pointer-events: none;
+}
+#bottom .panel { position: relative; height: 100%; flex: 1 1 0; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 4px; }
+#bottom .k { font-size: 9px; letter-spacing:.14em; color: var(--text-dim);
+  text-transform: uppercase; }
+#bottom .v { font-family: var(--mono); font-size: 16px; color: var(--text); }
+#bottom .v b { font-size: 22px; color: var(--led-cyan);
+  text-shadow: 0 0 10px rgba(79,214,255,.5); }
+#bottom .v small { font-size: 10px; color: var(--text-dim); margin-left: 4px; }
+
+#help {
+  position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+  background: var(--panel-bg); border: 1px solid var(--panel-brd);
+  padding: 6px 14px; border-radius: 999px; font-family: var(--mono);
+  font-size: 10px; letter-spacing:.05em; color: var(--text-dim);
+  pointer-events: none; z-index: 6;
+}
+#help kbd { background:#132133; border:1px solid #24405f; padding:1px 6px;
+  border-radius:3px; color: var(--text); font-family: var(--mono); margin: 0 1px; }
+
+.maplibregl-ctrl-top-right { top: 70px; }
+
+/* =========================================================
+   START MENU
+   ========================================================= */
+#menu {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; padding-left: 48px;
+  pointer-events: none;
+  background: radial-gradient(120% 110% at 45% 50%,
+              rgba(3,8,16,.10) 0%, rgba(3,8,16,.62) 100%);
+  transition: opacity .45s ease, visibility .45s;
+}
+#menu.hidden { opacity: 0; visibility: hidden; }
+
+.menu-card {
+  pointer-events: auto;
+  width: 348px; padding: 18px 18px 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-brd);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 16px 56px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.04);
+  font-size: 12px;
+}
+
+.menu-head { display: flex; align-items: center; gap: 12px; }
+.menu-head .flag { width: 26px; height: 18px; background: #c8102e;
+  border-radius: 2px; position: relative; flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.menu-head .flag::after { content:""; position:absolute; top:0; left:0; right:0; height:33%;
+  background:#fff; }
+.menu-head h1 { margin: 0; font-family: var(--mono); font-size: 16px;
+  font-weight: 600; letter-spacing: .08em; }
+.menu-head p { margin: 3px 0 0; color: var(--text-dim); font-size: 10px;
+  letter-spacing: .08em; }
+
+.menu-sep { height:1px; margin: 14px 0;
+  background: linear-gradient(90deg, transparent, var(--panel-brd), transparent); }
+
+.menu-step { font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--led-cyan); margin-bottom: 8px; }
+.menu-hint { margin: 0 0 12px; color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.readout > div { background: #03060c; border: 1px solid #17283f; border-radius: 6px;
+  padding: 8px 6px; text-align: center; }
+.readout small { display: block; font-size: 9px; letter-spacing: .14em;
+  color: var(--text-dim); margin-bottom: 4px; }
+.readout b { font-family: var(--mono); font-size: 13px; color: var(--led-cyan);
+  letter-spacing: .04em; }
+
+.m-status {
+  margin-top: 10px; padding: 8px 10px; border-radius: 6px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .05em;
+  background: #0b1422; border: 1px solid #1b2b45; color: var(--text-dim);
+  transition: .2s;
+}
+.m-status.ok   { color: var(--led-green); border-color:#1e6b3d; background:#08210f; }
+.m-status.bad  { color: var(--led-red);   border-color:#7f1d1d; background:#210a0d; }
+.m-status.wait { color: var(--led-amber); border-color:#8b6212; background:#221703; }
+.m-status.shake { animation: shake .3s; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-5px); }
+  75%     { transform: translateX(5px); }
+}
+
+.start-btn {
+  width: 100%; margin-top: 12px; padding: 12px;
+  border-radius: 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 13px; letter-spacing: .18em;
+  background: linear-gradient(180deg,#0b3d22,#062615);
+  color: var(--led-green); border: 1px solid #1e6b3d;
+  transition: .18s;
+}
+.start-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg,#0f5630,#0a3a1d);
+  box-shadow: 0 0 22px rgba(74,222,128,.28);
+}
+.start-btn:disabled { opacity: .32; cursor: not-allowed; }
+
+.menu-foot { margin-top: 10px; text-align: center; color: var(--text-dim);
+  font-size: 9px; letter-spacing: .08em; }
+.menu-foot kbd { background:#132133; border:1px solid #24405f; padding:1px 5px;
+  border-radius:3px; color: var(--text); font-family: var(--mono); }
+
+.ship-marker { pointer-events: none; color: var(--led-cyan); }
+.ship-marker svg { display: block; width: 100%; height: 100%;
+  transform: rotate(var(--hdg, 0deg)); transform-origin: 50% 50%;
+  transition: transform .1s linear; }
+.ship-marker.ghost { width: 40px; height: 40px; opacity: .9; }
+.ship-marker.ghost.ok  { color: var(--led-green); }
+.ship-marker.ghost.bad { color: var(--led-red); opacity: .7; }
+.ship-marker.placed { width: 20px; height: 20px;
+  color: var(--led-cyan);
+  filter: drop-shadow(0 0 10px rgba(79,214,255,.65)); }
+
+.waypoint-marker {
+  width: 22px; height: 22px;
+  background: rgba(14, 116, 144, .9);
+  border: 2px solid var(--led-cyan);
+  border-radius: 50%;
+  color: #e0f7ff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  box-shadow: 0 0 12px rgba(79,214,255,.65), inset 0 0 4px rgba(79,214,255,.3);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform .15s;
+}
+.waypoint-marker:hover { transform: scale(1.15); }
+
+/* =========================================================
+   CRASH OVERLAY
+   ========================================================= */
+#crash {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(40, 0, 5, .55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: auto;
+  animation: fadeIn .35s ease-out;
+}
+#crash.hidden { display: none; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.crash-card {
+  background: rgba(20, 2, 5, .94);
+  border: 2px solid #7f1d1d;
+  border-radius: 14px;
+  padding: 32px 44px;
+  text-align: center;
+  box-shadow: 0 0 90px rgba(255, 85, 102, .45), inset 0 0 40px rgba(255, 85, 102, .06);
+  max-width: 480px;
+}
+.crash-card h2 {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 30px;
+  letter-spacing: .22em;
+  color: var(--led-red);
+  text-shadow: 0 0 22px rgba(255, 85, 102, .75);
+  animation: blink 1.3s infinite;
+}
+.crash-card p {
+  margin: 12px 0 22px;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.crash-card p b { color: var(--text); font-family: var(--mono); }
+.crash-card button {
+  padding: 12px 34px;
+  background: linear-gradient(180deg, #7f1d1d, #4a0d13);
+  border: 1px solid #ef4444;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .18em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: .18s;
+}
+.crash-card button:hover { background: linear-gradient(180deg, #991b1b, #5c1018); }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="menu">
+  <div class="menu-card">
+    <div class="menu-head">
+      <div class="flag"></div>
+      <div>
+        <h1>MV NEPTUNE STAR</h1>
+        <p>BRIDGE SIMULATOR · GENOA → NAPLES</p>
+      </div>
+    </div>
+
+    <div class="menu-sep"></div>
+
+    <div class="menu-step">01 · Select start position</div>
+    <p class="menu-hint">
+      Click on open water to place your vessel. The position must be at sea —
+      land, ports and shallow areas are rejected.
+    </p>
+
+    <div class="readout">
+      <div><small>LATITUDE</small><b id="m-lat">--°--.--′N</b></div>
+      <div><small>LONGITUDE</small><b id="m-lon">--°--.--′E</b></div>
+    </div>
+
+    <div class="m-status" id="m-status">Loading chart…</div>
+
+    <button id="m-start" class="start-btn" disabled>START VOYAGE</button>
+
+    <div class="menu-foot">Move the cursor over the chart · <kbd>Enter</kbd> to start</div>
+  </div>
+</div>
+
+<div id="crash" class="hidden">
+  <div class="crash-card">
+    <h2>⚠ GROUNDING ⚠</h2>
+    <p>
+      Vessel aground. The hull has struck land or shallow water.<br>
+      Position: <b id="crash-pos">--</b><br>
+      <span id="crash-sog-wrap">Speed at impact: <b id="crash-sog">--</b></span>
+    </p>
+    <button id="crash-restart">RESTART VOYAGE</button>
+  </div>
+</div>
+
+<div id="bridge" class="hidden">
+
+  <div id="topbar">
+    <div id="vessel" class="panel">
+      <div class="flag"></div>
+      <div>
+        <div class="name">MV NEPTUNE STAR</div>
+        <div class="sub">IMO 9577123 · MMSI 247314600 · CALL IBQS2</div>
+      </div>
+      <div class="pill idle" id="status-pill">● STOPPED</div>
+      <div class="pill" id="pos-pill">43°30.0′N 010°18.0′E</div>
+    </div>
+
+    <div id="voyage" class="panel">
+      <div class="port">
+        <small>From</small>
+        <b>GENOA</b>
+      </div>
+      <div class="arrow"></div>
+      <div class="port" style="text-align:right">
+        <small>To</small>
+        <b>NAPLES</b>
+      </div>
+    </div>
+
+    <div id="clock" class="panel">
+      <div class="tz">
+        <small>UTC</small>
+        <b id="utc">--:--:--</b>
+      </div>
+      <div class="tz">
+        <small>LOCAL</small>
+        <b id="local">--:--:--</b>
+      </div>
+    </div>
+  </div>
+
+  <div id="engine" class="panel">
+    <div class="panel-title"><span>Engine · Main Propulsion</span><span id="eng-status" style="color:var(--led-red)">STOPPED</span></div>
+    <div class="body">
+      <button id="eng-start" class="eng-btn">
+        <span class="eng-dot"></span>
+        <span id="eng-btn-label">START ENGINE</span>
+      </button>
+
+      <div class="rpm off" id="rpm-wrap">
+        <div class="label">Revolutions per minute</div>
+        <div><span class="val" id="rpm">0.0</span> <span class="unit">RPM</span></div>
+        <div class="bar">
+          <i id="rpm-bar" style="width:0%"></i>
+          <i id="rpm-bar-ast" class="ast" style="width:0%"></i>
+        </div>
+      </div>
+
+      <div class="telegraph disabled" id="telegraph">
+        <div class="col">
+          <div class="step" data-tel="full">FULL AHEAD</div>
+          <div class="step" data-tel="half">HALF AHEAD</div>
+          <div class="step" data-tel="slow">SLOW AHEAD</div>
+          <div class="step" data-tel="dead-slow">DEAD SLOW AHEAD</div>
+        </div>
+        <div class="mid" id="tel-pos">▲</div>
+        <div class="col" style="text-align:right">
+          <div class="step" data-tel="stop">STOP</div>
+          <div class="step" data-tel="dead-slow-ast">DEAD SLOW AST.</div>
+          <div class="step" data-tel="slow-ast">SLOW ASTERN</div>
+          <div class="step" data-tel="full-ast">FULL ASTERN</div>
+        </div>
+      </div>
+
+      <div class="rows">
+        <span>Shaft power</span><span id="shaft-pw">0 kW</span>
+        <span>Fuel rate</span><span id="fuel-rate">0 L/h</span>
+        <span>Fuel oil temp</span><span id="fuel-temp">42 °C</span>
+        <span>Lube oil press.</span><span id="oil-press" class="ok">0.0 bar</span>
+        <span>Cooling water</span><span id="coolant" class="ok">42 °C</span>
+        <span>Exhaust gas temp</span><span id="egt">42 °C</span>
+        <span>Turbocharger</span><span id="turbo">0.0 kRPM</span>
+        <span>Running hours</span><span id="run-hrs">--</span>
+      </div>
+
+      <div>
+        <div class="k" style="font-size:9px;letter-spacing:.14em;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Tanks</div>
+        <div class="tanks">
+          <div class="tank"><span>FO HFO</span><div class="bar fuel"><i id="t-fuel" style="width:0%"></i></div><b id="t-fuel-v">--%</b></div>
+          <div class="tank"><span>FO MDO</span><div class="bar fuel"><i id="t-mdo" style="width:0%"></i></div><b id="t-mdo-v">--%</b></div>
+          <div class="tank"><span>Fresh water</span><div class="bar fw"><i id="t-fw" style="width:0%"></i></div><b id="t-fw-v">--%</b></div>
+          <div class="tank"><span>Ballast</span><div class="bar bw"><i id="t-bw" style="width:0%"></i></div><b id="t-bw-v">--%</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tools" class="panel">
+    <div class="panel-title">Chart Tools</div>
+    <div class="body">
+      <button id="t-nautical" class="tool-btn">
+        <span class="dot-ind"></span>
+        <span>Nautical chart</span>
+      </button>
+      <button id="t-waypoint" class="tool-btn">
+        <span class="dot-ind"></span>
+        <span>Waypoint mode</span>
+      </button>
+      <button id="t-clear" class="tool-btn">
+        <span class="dot-ind" style="background:transparent"></span>
+        <span>Clear route</span>
+      </button>
+      <div class="tools-info"><span>Waypoints</span><b id="wp-count">0</b></div>
+      <div class="tools-info"><span>Route</span><b id="wp-dist">0.0 nm</b></div>
+    </div>
+  </div>
+
+  <div id="nav">
+    <div class="panel" style="padding:10px">
+      <div class="compass">
+        <div class="ring"></div>
+        <div class="rose" id="rose"></div>
+        <div class="needle" id="needle"></div>
+        <div class="cap"></div>
+        <div class="hdg">
+          <b id="hdg-val">---</b>°
+          <small>HEADING · GYRO</small>
+        </div>
+        <div class="follow-badge" id="follow-badge">◉ FOLLOW</div>
+      </div>
+    </div>
+
+    <div class="panel repeater">
+      <div class="big">
+        <small>Speed</small>
+        <b id="spd">0.0</b> kn
+      </div>
+      <div class="row"><span>STW</span><span id="stw">0.0 kn</span></div>
+      <div class="row"><span>SOG</span><span id="sog">0.0 kn</span></div>
+      <div class="row"><span>COG</span><span id="cog">---°</span></div>
+      <div class="row"><span>Rate of turn</span><span id="rot">0.00 °/min</span></div>
+      <div class="row"><span>Depth</span><span id="depth">-- m</span></div>
+      <div class="row"><span>Autopilot</span><span id="ap">MANUAL</span></div>
+    </div>
+
+    <div class="panel repeater" style="width:190px">
+      <div class="rudder">
+        <small style="color:var(--text-dim);font-size:9px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:4px">Rudder</small>
+        <div class="gauge">
+          <div class="arc" id="rudder-arc"></div>
+          <div class="label p">P</div>
+          <div class="label s">S</div>
+        </div>
+        <b id="rudder-val">0.0°</b>
+      </div>
+
+      <div class="rudder-ctrl" id="rudder-ctrl">
+        <button data-rud="port" title="Port (A / hold)">◀ P</button>
+        <button data-rud="center" title="Center rudder (Space)">CENTER</button>
+        <button data-rud="stbd" title="Starboard (D / hold)">S ▶</button>
+      </div>
+
+      <div class="row"><span>Steering</span><span>NFU · Follow-Up</span></div>
+      <div class="row"><span>Bow thruster</span><span id="bow">OFF</span></div>
+      <div class="row"><span>Propeller pitch</span><span id="pitch">100%</span></div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: COMMS (VHF RADIO) ============ -->
+  <div id="comms" class="panel">
+    <div class="panel-title"><span>GMDSS · VHF Radio</span><span style="color:var(--led-green)">● TX/RX</span></div>
+    <div class="body">
+
+      <div class="vhf-display">
+        <div class="ch" id="vhf-ch">16 <small>CHANNEL</small></div>
+        <div class="meta">
+          <span>PWR <b id="vhf-pw">25W</b></span>
+          <span>SQUELCH <b id="vhf-sq">OFF (16)</b></span>
+          <span>DSC <b style="color:var(--led-green)">READY</b></span>
+        </div>
+      </div>
+
+      <div class="vhf-status">
+        <span class="vhf-ind idle" id="vhf-state">IDLE</span>
+        <span class="vhf-bars sig-3" id="vhf-bars">
+          <i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span class="vhf-ch-name" id="vhf-ch-name">Distress & calling</span>
+      </div>
+
+      <div class="vhf-keys" id="vhf-keys">
+        <button class="distress" data-ch="16">CH 16</button>
+        <button data-ch="06">CH 06</button>
+        <button data-ch="09">CH 09</button>
+        <button data-ch="10">CH 10</button>
+        <button data-ch="13">CH 13</button>
+        <button data-ch="15">CH 15</button>
+        <button data-ch="72">CH 72</button>
+        <button data-ch="77">CH 77</button>
+      </div>
+
+      <div class="knobs">
+        <div class="knob">
+          <div class="dial" id="vol-dial" style="--angle: 0deg"></div>
+          <small>Volume</small> <b id="vol-v">65</b>
+        </div>
+        <div class="knob">
+          <div class="dial" id="sql-dial" style="--angle: 0deg"></div>
+          <small>Squelch</small> <b id="sql-v">40</b>
+        </div>
+      </div>
+
+      <div class="vhf-actions">
+        <button class="vhf-action ptt" id="ptt-btn" title="Push-to-talk (hold T)">PTT</button>
+        <button class="vhf-action" id="scan-btn" title="Channel scan (V)">SCAN</button>
+        <button class="vhf-action" id="mute-btn" title="Mute audio">🔊</button>
+        <button class="vhf-action dsc" id="dsc-btn" title="Send distress alert">DSC</button>
+      </div>
+
+      <div class="vhf-log-title">
+        <span>Radio Log</span>
+        <span id="vhf-log-clear">clear</span>
+      </div>
+      <div class="vhf-log" id="vhf-log"></div>
+    </div>
+  </div>
+
+  <div id="bottom">
+    <div class="panel">
+      <div class="k">Wind</div>
+      <div class="v"><b id="wind-spd">--.-</b><small>kn</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">Dir <span id="wind-dir" style="color:var(--text)">---°</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">Barometer</div>
+      <div class="v"><b id="baro">----.-</b><small>hPa</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">Trend <span id="baro-trend" style="color:var(--led-green)">STEADY</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">Air / Water</div>
+      <div class="v"><b id="air">--.-</b><small>°C air</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">Water <span id="water" style="color:var(--text)">--.-°C</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">Sea state / Swell</div>
+      <div class="v"><b id="wave">-.-</b><small>m</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">Douglas <span id="douglas" style="color:var(--text)">3</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">Visibility</div>
+      <div class="v"><b id="vis">--.-</b><small>nm</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">Humidity <span id="hum" style="color:var(--text)">--%</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">AIS · Traffic</div>
+      <div class="v"><b id="ais">--</b><small>targets</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">CPA <span id="cpa" style="color:var(--text)">--.- nm</span></div>
+    </div>
+    <div class="panel">
+      <div class="k">GNSS · GPS</div>
+      <div class="v"><b id="gps-sats">--</b><small>sats</small></div>
+      <div class="v" style="font-size:11px;color:var(--text-dim)">HDOP <span id="hdop" style="color:var(--led-green)">--.-</span></div>
+    </div>
+  </div>
+
+  <div id="help">
+    <kbd>W</kbd>/<kbd>S</kbd> throttle · <kbd>A</kbd>/<kbd>D</kbd> rudder · <kbd>Space</kbd> center · <kbd>R</kbd> engine · <kbd>T</kbd> PTT · <kbd>V</kbd> scan · <kbd>C</kbd> follow · <kbd>H</kbd> hide
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   1. MAP
+   ========================================================================= */
+(() => {
+  const COAST_URL     = 'data/coastline.geojson';
+  const PORTS_URL     = 'data/ports.geojson';
+  const ITA_LINES_URL = 'data/hotosm_ita_sea_ports_lines_geojson.geojson';
+  const ITA_POLY_URL  = 'data/hotosm_ita_sea_ports_polygons_geojson.geojson';
+  const ITA_PTS_URL   = 'data/hotosm_ita_sea_ports_points_geojson.geojson';
+
+  const STYLES = {
+    liberty:  'https://tiles.openfreemap.org/styles/liberty',
+    bright:   'https://tiles.openfreemap.org/styles/bright',
+    positron: 'https://tiles.openfreemap.org/styles/positron',
+    dark:     'https://tiles.openfreemap.org/styles/dark'
+  };
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: STYLES.liberty,
+    center: [10.3, 43.5],
+    zoom: 8,
+    attributionControl: true,
+    dragRotate: false,
+    pitchWithRotate: false
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+  map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+
+  window.__shipMap        = map;
+  window.__mapReady       = false;
+  window.__hasWaterLayer  = false;
+
+  let _coastGj, _portsGj, _itaLinesGj, _itaPolyGj, _itaPtsGj;
+
+  const ALL_LAYERS = ['coastline-line','ports-fill','ports-line','ports-point',
+    'ita-lines-line','ita-poly-fill','ita-poly-outline','ita-points-circle'];
+  const ALL_SOURCES = ['coastline','ports','ita-lines','ita-polys','ita-points'];
+
+  async function loadAll() {
+    const [c,p,l,o,t] = await Promise.all([
+      fetch(COAST_URL), fetch(PORTS_URL), fetch(ITA_LINES_URL),
+      fetch(ITA_POLY_URL), fetch(ITA_PTS_URL)
+    ]);
+    _coastGj    = await c.json();
+    _portsGj    = await p.json();
+    _itaLinesGj = await l.json();
+    _itaPolyGj  = await o.json();
+    _itaPtsGj   = await t.json();
+  }
+
+  function addOverlays() {
+    if (!_coastGj) return;
+    ALL_LAYERS.forEach(id => { if (map.getLayer(id))  map.removeLayer(id); });
+    ALL_SOURCES.forEach(id => { if (map.getSource(id)) map.removeSource(id); });
+
+    map.addSource('coastline', { type:'geojson', data:_coastGj });
+    map.addLayer({ id:'coastline-line', type:'line', source:'coastline',
+      paint:{ 'line-color':'#8ecbff',
+        'line-width':['interpolate',['linear'],['zoom'],0,.5,4,1,8,1.6],
+        'line-opacity':.9 }});
+
+    map.addSource('ports', { type:'geojson', data:_portsGj });
+    map.addLayer({ id:'ports-fill', type:'fill', source:'ports',
+      filter:['==',['geometry-type'],'Polygon'],
+      paint:{ 'fill-color':'#ff7a59','fill-opacity':.25,'fill-outline-color':'#ff7a59' }});
+    map.addLayer({ id:'ports-line', type:'line', source:'ports',
+      filter:['==',['geometry-type'],'LineString'],
+      paint:{ 'line-color':'#ff7a59','line-width':1.5 }});
+    map.addLayer({ id:'ports-point', type:'circle', source:'ports',
+      filter:['==',['geometry-type'],'Point'],
+      paint:{ 'circle-radius':['interpolate',['linear'],['zoom'],0,2,6,4,12,6],
+        'circle-color':'#ffd166','circle-stroke-color':'#7a4a00',
+        'circle-stroke-width':.5,'circle-opacity':.95 }});
+
+    map.addSource('ita-polys', { type:'geojson', data:_itaPolyGj });
+    map.addLayer({ id:'ita-poly-fill', type:'fill', source:'ita-polys',
+      paint:{ 'fill-color':'#ff7a59','fill-opacity':.35 }});
+    map.addLayer({ id:'ita-poly-outline', type:'line', source:'ita-polys',
+      paint:{ 'line-color':'#ff9d7a',
+        'line-width':['interpolate',['linear'],['zoom'],4,.8,8,1.5,12,2.5],
+        'line-opacity':.95 }});
+
+    map.addSource('ita-lines', { type:'geojson', data:_itaLinesGj });
+    map.addLayer({ id:'ita-lines-line', type:'line', source:'ita-lines',
+      layout:{ 'line-cap':'round','line-join':'round' },
+      paint:{ 'line-color':'#ff4fd8',
+        'line-width':['interpolate',['linear'],['zoom'],4,.5,8,1.5,12,3,16,6],
+        'line-opacity':.95 }});
+
+    map.addSource('ita-points', { type:'geojson', data:_itaPtsGj });
+    map.addLayer({ id:'ita-points-circle', type:'circle', source:'ita-points',
+      filter:['==',['geometry-type'],'Point'],
+      paint:{ 'circle-radius':['interpolate',['linear'],['zoom'],4,3,8,5,12,7,16,10],
+        'circle-color':'#4ade80','circle-stroke-color':'#0a3d1f',
+        'circle-stroke-width':1,'circle-opacity':.95 }});
+  }
+
+  map.on('load', async () => {
+    try {
+      const layers = (map.getStyle().layers) || [];
+      window.__hasWaterLayer = layers.some(l => (l['source-layer'] || '') === 'water');
+      if (!window.__hasWaterLayer) {
+        console.warn('[map] No "water" source-layer — placement/ground checks disabled.');
+      }
+      window.__mapReady = true;
+      await loadAll();
+      addOverlays();
+    } catch (e) {
+      console.error('GeoJSON load failed:', e);
+      window.__mapReady = true;
+    }
+  });
+})();
+
+/* =========================================================================
+   2. BRIDGE UI
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+
+  const SHIP_LENGTH_M = 10;
+  const SHIP_MIN_PX   = 14;
+  const SHIP_MAX_PX   = 220;
+
+  function metersPerPixel(lat, zoom) {
+    return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+  }
+  let _lastMarkerPx = 0;
+  function updateMarkerSize(map) {
+    if (!window.__shipMarker || !map) return;
+    const mpp = metersPerPixel(ship.lat, map.getZoom());
+    const px  = Math.max(SHIP_MIN_PX,
+                Math.min(SHIP_MAX_PX, SHIP_LENGTH_M / mpp));
+    if (Math.abs(px - _lastMarkerPx) < 0.5) return;
+    _lastMarkerPx = px;
+    const el = window.__shipMarker.getElement();
+    el.style.width  = px + 'px';
+    el.style.height = px + 'px';
+  }
+
+  const TEL_MAP = {
+    'full':          'FULL AHEAD',
+    'half':          'HALF AHEAD',
+    'slow':          'SLOW AHEAD',
+    'dead-slow':     'DEAD SLOW AHEAD',
+    'stop':          'STOP',
+    'dead-slow-ast': 'DEAD SLOW AST.',
+    'slow-ast':      'SLOW ASTERN',
+    'full-ast':      'FULL ASTERN'
+  };
+  const TEL_RPM = {
+    'FULL AHEAD':      100,
+    'HALF AHEAD':       70,
+    'SLOW AHEAD':       40,
+    'DEAD SLOW AHEAD':  15,
+    'STOP':              0,
+    'DEAD SLOW AST.':  -15,
+    'SLOW ASTERN':     -40,
+    'FULL ASTERN':     -70
+  };
+  const TEL_ORDER = [
+    'FULL AHEAD', 'HALF AHEAD', 'SLOW AHEAD', 'DEAD SLOW AHEAD',
+    'STOP',
+    'DEAD SLOW AST.', 'SLOW ASTERN', 'FULL ASTERN'
+  ];
+
+  const ship = {
+    lat: 43.5, lon: 10.3,
+    heading: 90, sog: 0, stw: 0, cog: 90,
+    rot: 0, rudder: 0,
+    rpm: 0, rpmTarget: 0, rpmPct: 0,
+    engineOn: false,
+    depth: 42.3,
+    windDir: 245, windSpd: 18.3,
+    baro: 1014.2, baroTrend: 0,
+    air: 18.4, water: 16.8,
+    wave: 1.4, douglas: 3,
+    vis: 8.5, humidity: 72,
+    fuel: 78, mdo: 91, fw: 64, ballast: 42,
+    fuelRate: 0, fuelTemp: 42,
+    oilPress: 0, coolant: 42, egt: 42, turbo: 0,
+    runHours: 34281.4,
+    shaftPw: 0,
+    ais: 27, cpa: 3.4,
+    gpsSats: 14, hdop: 0.8,
+    autopilot: 'MANUAL', bow: 'OFF', pitch: 100,
+    telegraph: 'STOP',
+    status: 'STOPPED'
+  };
+
+  let started      = false;
+  let gameOver     = false;
+  let graceEnd     = 0;
+  let followShip   = true;
+  let transitioning = false;
+
+  const CAM_PITCH = 45;
+
+  (function buildRose() {
+    const rose = $('rose');
+    for (let a = 0; a < 360; a += 5) {
+      const el = document.createElement('span');
+      el.style.transform = `rotate(${a}deg) translate(0, -78px)`;
+      if (a % 30 === 0) {
+        const labels = {0:'N',90:'E',180:'S',270:'W'};
+        el.textContent = labels[a] || a;
+        el.style.color = (a === 0) ? 'var(--led-red)' : 'var(--text)';
+        el.style.fontWeight = '600';
+      } else if (a % 10 === 0) {
+        el.textContent = '·';
+      } else {
+        el.textContent = '';
+      }
+      rose.appendChild(el);
+    }
+  })();
+
+  function updateFollowBadge() {
+    const b = $('follow-badge');
+    if (!b) return;
+    b.classList.toggle('off', !followShip);
+    b.textContent = followShip ? '◉ FOLLOW' : '○ FREE';
+  }
+
+  const engBtn = $('eng-start');
+  engBtn.addEventListener('click', () => { if (!gameOver) toggleEngine(); });
+
+  function toggleEngine() {
+    ship.engineOn = !ship.engineOn;
+    if (!ship.engineOn) { ship.telegraph = 'STOP'; ship.rpmTarget = 0; }
+    updateEngineButton();
+  }
+
+  function updateEngineButton() {
+    if (ship.engineOn) {
+      engBtn.classList.add('running');
+      $('eng-btn-label').textContent = 'STOP ENGINE';
+      $('eng-status').textContent = 'RUNNING';
+      $('eng-status').style.color = 'var(--led-green)';
+      $('telegraph').classList.remove('disabled');
+    } else {
+      engBtn.classList.remove('running');
+      $('eng-btn-label').textContent = 'START ENGINE';
+      $('eng-status').textContent = 'STOPPED';
+      $('eng-status').style.color = 'var(--led-red)';
+      $('telegraph').classList.add('disabled');
+    }
+  }
+
+  function setTelegraph(name) {
+    if (!TEL_RPM.hasOwnProperty(name)) return;
+    ship.telegraph = name;
+    ship.rpmTarget = TEL_RPM[name];
+  }
+  function stepTelegraph(delta) {
+    if (!ship.engineOn) return;
+    const i = TEL_ORDER.indexOf(ship.telegraph);
+    if (i < 0) return;
+    const ni = Math.max(0, Math.min(TEL_ORDER.length - 1, i + delta));
+    if (ni !== i) setTelegraph(TEL_ORDER[ni]);
+  }
+
+  document.querySelectorAll('.telegraph .step').forEach(el => {
+    el.addEventListener('click', () => {
+      if (gameOver) return;
+      if (!ship.engineOn) {
+        engBtn.style.transform = 'scale(0.97)';
+        setTimeout(() => { engBtn.style.transform = ''; }, 120);
+        return;
+      }
+      setTelegraph(TEL_MAP[el.dataset.tel] || 'STOP');
+    });
+  });
+
+  const rudBtns = document.querySelectorAll('#rudder-ctrl button');
+  let rudInterval = null;
+
+  function setRudder(delta) {
+    ship.rudder = Math.max(-35, Math.min(35, ship.rudder + delta));
+  }
+  function startRudMove(dir) {
+    if (gameOver) return;
+    if (rudInterval) return;
+    const step = dir === 'port' ? -5 : 5;
+    setRudder(step);
+    const btn = document.querySelector(`#rudder-ctrl button[data-rud="${dir}"]`);
+    if (btn) btn.classList.add('active');
+    rudInterval = setInterval(() => setRudder(step), 80);
+  }
+  function stopRudMove() {
+    if (rudInterval) { clearInterval(rudInterval); rudInterval = null; }
+    document.querySelectorAll('#rudder-ctrl button').forEach(b => b.classList.remove('active'));
+  }
+
+  rudBtns.forEach(btn => {
+    const d = btn.dataset.rud;
+    if (d === 'center') {
+      btn.addEventListener('click', () => { if (!gameOver) ship.rudder = 0; });
+    } else {
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); startRudMove(d); });
+      btn.addEventListener('mouseup',   stopRudMove);
+      btn.addEventListener('mouseleave', stopRudMove);
+      btn.addEventListener('touchstart', (e) => { e.preventDefault(); startRudMove(d); }, { passive:false });
+      btn.addEventListener('touchend',   stopRudMove);
+      btn.addEventListener('touchcancel', stopRudMove);
+    }
+  });
+  window.addEventListener('mouseup', stopRudMove);
+
+  const pad2 = n => String(n).padStart(2,'0');
+  const fmtLat = (lat) => {
+    const h = lat >= 0 ? 'N' : 'S';
+    const a = Math.abs(lat);
+    const d = Math.floor(a);
+    const m = (a - d) * 60;
+    return `${pad2(d)}°${m.toFixed(1).padStart(4,'0')}′${h}`;
+  };
+  const fmtLon = (lon) => {
+    const h = lon >= 0 ? 'E' : 'W';
+    const a = Math.abs(lon);
+    const d = Math.floor(a);
+    const m = (a - d) * 60;
+    return `${pad2(d)}°${m.toFixed(1).padStart(4,'0')}′${h}`;
+  };
+  const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+  function lerpAngle(a, b, t) {
+    let d = b - a;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    return a + d * t;
+  }
+
+  function isOverWater(lng, lat) {
+    const map = window.__shipMap;
+    if (!map || !window.__mapReady || !window.__hasWaterLayer) return true;
+    const p = map.project([lng, lat]);
+    const feats = map.queryRenderedFeatures([[p.x, p.y], [p.x, p.y]]);
+    return feats.some(f => {
+      const sl = (f.sourceLayer || '').toLowerCase();
+      const id = (f.layer && f.layer.id ? f.layer.id : '').toLowerCase();
+      const isWaterLayer = sl === 'water' || id.includes('water');
+      const isPoly = !!(f.geometry && /Polygon/.test(f.geometry.type));
+      return isWaterLayer && isPoly;
+    });
+  }
+
+  function triggerGrounding() {
+    if (gameOver) return;
+    gameOver = true;
+    ship.engineOn   = false;
+    ship.rpmTarget  = 0;
+    ship.telegraph  = 'STOP';
+    updateEngineButton();
+    $('crash-pos').textContent = fmtLat(ship.lat) + ' ' + fmtLon(ship.lon);
+    $('crash-sog').textContent = Math.abs(ship.sog).toFixed(1) + ' kn';
+    $('crash').classList.remove('hidden');
+    if (window.__shipMarker) {
+      const el = window.__shipMarker.getElement();
+      el.style.color = 'var(--led-red)';
+      el.style.filter = 'drop-shadow(0 0 10px rgba(255,85,102,.8))';
+    }
+  }
+
+  document.getElementById('crash-restart').addEventListener('click', () => {
+    location.reload();
+  });
+
+  const keys = Object.create(null);
+
+  window.addEventListener('keydown', (e) => {
+    if (!started) return;
+    const k = e.key;
+    const lk = k.length === 1 ? k.toLowerCase() : k;
+
+    if (lk === 'h') { $('bridge').classList.toggle('hidden'); e.preventDefault(); return; }
+    if (gameOver) return;
+
+    if (lk === 'r') { toggleEngine(); e.preventDefault(); return; }
+    if (lk === 'c') { followShip = !followShip; updateFollowBadge(); e.preventDefault(); return; }
+    if (lk === 'w') { if (!keys['w']) { keys['w'] = true; stepTelegraph(-1); } e.preventDefault(); return; }
+    if (lk === 's') { if (!keys['s']) { keys['s'] = true; stepTelegraph(1); } e.preventDefault(); return; }
+    if (lk === 'a' || k === 'ArrowLeft') {
+      if (!keys['a']) { keys['a'] = true; startRudMove('port'); }
+      e.preventDefault(); return;
+    }
+    if (lk === 'd' || k === 'ArrowRight') {
+      if (!keys['d']) { keys['d'] = true; startRudMove('stbd'); }
+      e.preventDefault(); return;
+    }
+    if (k === ' ' || k === 'Spacebar') { ship.rudder = 0; e.preventDefault(); return; }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    const k = e.key;
+    const lk = k.length === 1 ? k.toLowerCase() : k;
+    if (lk === 'w') keys['w'] = false;
+    if (lk === 's') keys['s'] = false;
+    if (lk === 'a' || k === 'ArrowLeft')  { keys['a'] = false; stopRudMove(); }
+    if (lk === 'd' || k === 'ArrowRight') { keys['d'] = false; stopRudMove(); }
+  });
+
+  const map = window.__shipMap;
+
+  map.on('dragstart',    () => { followShip = false; updateFollowBadge(); });
+  map.on('rotatestart',  (e) => { if (e.originalEvent) { followShip = false; updateFollowBadge(); } });
+  map.on('pitchstart',   (e) => { if (e.originalEvent) { followShip = false; updateFollowBadge(); } });
+
+  map.getCanvas().addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!started || gameOver || transitioning) return;
+    transitioning = true;
+    map.flyTo({
+      center: [ship.lon, ship.lat],
+      bearing: ship.heading,
+      pitch: CAM_PITCH,
+      zoom: Math.max(map.getZoom(), 10),
+      duration: 850,
+      essential: true
+    });
+    setTimeout(() => {
+      transitioning = false;
+      followShip = true;
+      updateFollowBadge();
+    }, 900);
+  });
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min((now - last) / 1000, 0.5);
+    last = now;
+
+    if (!started) { requestAnimationFrame(tick); return; }
+
+    const t = now / 1000;
+
+    if (!gameOver) {
+      // Engine
+      const target = ship.engineOn ? (TEL_RPM[ship.telegraph] || 0) : 0;
+      ship.rpmTarget = target;
+      ship.rpm += (target - ship.rpm) * Math.min(1, dt * 0.55);
+      if (Math.abs(ship.rpm) < 0.05) ship.rpm = 0;
+      ship.rpmPct = ship.rpm;
+
+      // Speed
+      const targetSog = ship.rpm * 0.25;
+      ship.sog += (targetSog - ship.sog) * Math.min(1, dt * 0.60);
+      if (Math.abs(ship.sog) < 0.03 && Math.abs(targetSog) < 0.03) ship.sog = 0;
+
+      // Steering
+      const speedFactor   = Math.min(Math.abs(ship.sog) / 10, 1.4);
+      const propWash      = ship.engineOn
+        ? Math.min(Math.abs(ship.rpm) / 60, 1) * 0.55
+        : 0;
+      const effectiveFlow = Math.max(speedFactor, propWash);
+      const rudderFactor  = ship.rudder / 35;
+      const turnRate = rudderFactor * Math.sqrt(effectiveFlow) * 10.0;
+
+      ship.rot     = turnRate * 60;
+      ship.heading = (ship.heading + turnRate * dt + 360) % 360;
+      ship.stw     = Math.abs(ship.sog) + 0.05 * Math.abs(ship.rudder) / 35;
+
+      const distNm  = ship.sog * dt / 3600;
+      const distDeg = distNm / 60;
+      const rad = ship.heading * Math.PI / 180;
+      ship.lat += distDeg * Math.cos(rad);
+      ship.lon += distDeg * Math.sin(rad) / Math.cos(ship.lat * Math.PI / 180);
+
+      if (performance.now() > graceEnd && Math.abs(ship.sog) > 0.05) {
+        if (!isOverWater(ship.lon, ship.lat)) triggerGrounding();
+      }
+    } else {
+      ship.sog *= Math.pow(0.35, dt); if (Math.abs(ship.sog) < 0.02) ship.sog = 0;
+      ship.rpm *= Math.pow(0.35, dt); if (Math.abs(ship.rpm) < 0.05) ship.rpm = 0;
+      ship.rot *= Math.pow(0.35, dt);
+    }
+
+    ship.cog = (ship.heading + (ship.sog < 0 ? 180 : 0) + 360) % 360;
+
+    ship.windSpd    = 18 + Math.sin(t / 23) * 2.2;
+    ship.windDir    = (245 + Math.sin(t / 41) * 8 + 360) % 360;
+    ship.depth      = 42 + Math.sin(t / 19) * 6;
+    ship.wave       = 1.4 + Math.sin(t / 31) * 0.3;
+    ship.baro       = 1014 + Math.sin(t / 47) * 1.2;
+    ship.air        = 18.4 + Math.sin(t / 53) * 0.6;
+    ship.water      = 16.8 + Math.sin(t / 61) * 0.3;
+    ship.vis        = 8.5 + Math.sin(t / 67) * 0.8;
+    ship.humidity   = 72 + Math.sin(t / 71) * 4;
+    ship.cpa        = 3.4 + Math.sin(t / 43) * 1.5;
+    ship.ais        = Math.round(27 + Math.sin(t / 17) * 3);
+    ship.gpsSats    = Math.round(14 + Math.sin(t / 29) * 1.5);
+    ship.hdop       = 0.8 + Math.sin(t / 37) * 0.15;
+
+    const rpmN = Math.abs(ship.rpm);
+    ship.shaftPw  = rpmN * 53;
+    ship.fuelRate = rpmN * 4.4;
+    ship.egt      = 42 + rpmN * 4.3;
+    ship.turbo    = rpmN * 0.16;
+    ship.oilPress = rpmN > 1 ? 1.5 + rpmN * 0.035 : 0;
+    ship.coolant  = 42 + Math.min(50, rpmN * 0.55);
+    ship.runHours += ship.engineOn ? dt / 3600 : 0;
+
+    if (ship.engineOn) {
+      ship.fuel = clamp(ship.fuel - dt * 0.0008 * (rpmN/80 + 0.2), 0, 100);
+      ship.mdo  = clamp(ship.mdo  - dt * 0.0002 * (rpmN/80 + 0.2), 0, 100);
+    }
+    ship.fw = clamp(ship.fw - dt * 0.0003, 0, 100);
+
+    // --- DOM updates ---
+    $('pos-pill').textContent = fmtLat(ship.lat) + ' ' + fmtLon(ship.lon);
+
+    const statusPill = $('status-pill');
+    if (gameOver) { ship.status = 'AGROUND'; statusPill.className = 'pill dead'; }
+    else if (ship.engineOn && Math.abs(ship.sog) > 0.2) { ship.status = 'UNDERWAY'; statusPill.className = 'pill live'; }
+    else if (ship.engineOn) { ship.status = 'MANEUVERING'; statusPill.className = 'pill idle'; }
+    else { ship.status = 'STOPPED'; statusPill.className = 'pill idle'; }
+    statusPill.textContent = '● ' + ship.status;
+
+    $('rpm').textContent = Math.abs(ship.rpm).toFixed(1);
+    $('rpm-wrap').classList.toggle('off', Math.abs(ship.rpm) < 0.05 && !ship.engineOn);
+    const pct = clamp((ship.rpm / 100) * 100, -100, 100);
+    if (pct >= 0) { $('rpm-bar').style.width = pct + '%'; $('rpm-bar-ast').style.width = '0%'; }
+    else { $('rpm-bar').style.width = '0%'; $('rpm-bar-ast').style.width = Math.abs(pct) + '%'; }
+    $('shaft-pw').textContent   = Math.round(ship.shaftPw).toLocaleString() + ' kW';
+    $('fuel-rate').textContent  = ship.fuelRate.toFixed(0) + ' L/h';
+    $('fuel-temp').textContent  = ship.fuelTemp + ' °C';
+    $('oil-press').textContent  = ship.oilPress.toFixed(2) + ' bar';
+    $('coolant').textContent    = ship.coolant.toFixed(0) + ' °C';
+    $('egt').textContent        = ship.egt.toFixed(0) + ' °C';
+    $('turbo').textContent      = ship.turbo.toFixed(1) + ' kRPM';
+    $('run-hrs').textContent    = ship.runHours.toFixed(1) + ' h';
+
+    $('t-fuel').style.width = ship.fuel + '%';   $('t-fuel-v').textContent = ship.fuel.toFixed(0)+'%';
+    $('t-mdo').style.width  = ship.mdo  + '%';   $('t-mdo-v').textContent  = ship.mdo.toFixed(0)+'%';
+    $('t-fw').style.width   = ship.fw   + '%';   $('t-fw-v').textContent   = ship.fw.toFixed(0)+'%';
+    $('t-bw').style.width   = ship.ballast + '%';$('t-bw-v').textContent   = ship.ballast.toFixed(0)+'%';
+
+    document.querySelectorAll('.telegraph .step').forEach(el => {
+      el.classList.toggle('on', TEL_MAP[el.dataset.tel] === ship.telegraph);
+    });
+
+    $('needle').style.transform =
+      `translate(-50%, -100%) rotate(${-ship.heading}deg)`;
+    $('hdg-val').textContent = String(Math.round(ship.heading)).padStart(3,'0');
+    $('spd').textContent = Math.abs(ship.sog).toFixed(1);
+    $('stw').textContent = ship.stw.toFixed(1) + ' kn';
+    $('sog').textContent = ship.sog.toFixed(1) + ' kn';
+    $('cog').textContent = String(Math.round(ship.cog)).padStart(3,'0') + '°';
+    $('rot').textContent = ship.rot.toFixed(2) + ' °/min';
+    $('depth').textContent = ship.depth.toFixed(1) + ' m';
+    $('ap').textContent = ship.autopilot;
+
+    $('rudder-arc').style.transform =
+      `translateX(-50%) rotate(${clamp(ship.rudder,-35,35)}deg)`;
+    $('rudder-val').textContent = (ship.rudder >= 0 ? 'S ' : 'P ') +
+      Math.abs(ship.rudder).toFixed(1) + '°';
+    $('bow').textContent = ship.bow;
+    $('pitch').textContent = ship.pitch + '%';
+
+    // NOTE: VHF panel is now driven entirely by the radio module (section 5).
+
+    $('wind-spd').textContent = ship.windSpd.toFixed(1);
+    $('wind-dir').textContent = String(Math.round(ship.windDir)).padStart(3,'0') + '°';
+    $('baro').textContent = ship.baro.toFixed(1);
+    $('air').textContent = ship.air.toFixed(1);
+    $('water').textContent = ship.water.toFixed(1) + '°C';
+    $('wave').textContent = ship.wave.toFixed(1);
+    $('douglas').textContent = ship.douglas;
+    $('vis').textContent = ship.vis.toFixed(1);
+    $('hum').textContent = ship.humidity.toFixed(0) + '%';
+    $('ais').textContent = ship.ais;
+    $('cpa').textContent = ship.cpa.toFixed(1) + ' nm';
+    $('gps-sats').textContent = ship.gpsSats;
+    $('hdop').textContent = ship.hdop.toFixed(1);
+
+    const now2 = new Date();
+    const utc = `${pad2(now2.getUTCHours())}:${pad2(now2.getUTCMinutes())}:${pad2(now2.getUTCSeconds())}`;
+    const loc = `${pad2(now2.getHours())}:${pad2(now2.getMinutes())}:${pad2(now2.getSeconds())}`;
+    $('utc').textContent = utc;
+    $('local').textContent = loc;
+
+    if (window.__shipMarker && map) {
+      window.__shipMarker.setLngLat([ship.lon, ship.lat]);
+      const el = window.__shipMarker.getElement();
+      const screenDeg = ship.heading - map.getBearing();
+      el.style.setProperty('--hdg', screenDeg.toFixed(1) + 'deg');
+      updateMarkerSize(map);
+    }
+
+    if (map && followShip && !transitioning) {
+      const curB = map.getBearing();
+      const newB = lerpAngle(curB, ship.heading, Math.min(1, dt * 4));
+      map.jumpTo({
+        center: [ship.lon, ship.lat],
+        bearing: newB
+      });
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  window.__beginGame = (spawn) => {
+    if (!spawn) return;
+    ship.lon = spawn.lon;
+    ship.lat = spawn.lat;
+    if (typeof spawn.heading === 'number') ship.heading = spawn.heading;
+    ship.cog = ship.heading;
+
+    started  = true;
+    last     = performance.now();
+    graceEnd = performance.now() + 2500;
+    followShip = true;
+    updateFollowBadge();
+    updateEngineButton();
+
+    const map = window.__shipMap;
+    if (map) {
+      map.jumpTo({
+        center: [ship.lon, ship.lat],
+        bearing: ship.heading,
+        pitch: CAM_PITCH,
+        zoom: Math.max(map.getZoom(), 11)
+      });
+    }
+
+    _lastMarkerPx = 0;
+    updateMarkerSize(map);
+
+    // Let the VHF radio module know the game has begun.
+    window.dispatchEvent(new CustomEvent('bridge:started'));
+  };
+
+  window.__isGameStarted = () => started;
+  window.__ship = ship;
+})();
+
+/* =========================================================================
+   3. START MENU
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const map = window.__shipMap;
+
+  const menu     = $('menu');
+  const statusEl = $('m-status');
+  const startBtn = $('m-start');
+  const latEl    = $('m-lat');
+  const lonEl    = $('m-lon');
+
+  const SHIP_SVG = `
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="16.5" fill="currentColor" fill-opacity=".10"
+              stroke="currentColor" stroke-opacity=".55" stroke-width="1.2"/>
+      <path d="M20 5 L28.5 32.5 L20 26.5 L11.5 32.5 Z"
+            fill="currentColor" stroke="#04121c" stroke-width="1.1"
+            stroke-linejoin="round"/>
+    </svg>`;
+
+  let selected    = null;
+  let gameStarted = false;
+
+  const ghostEl = document.createElement('div');
+  ghostEl.className = 'ship-marker ghost';
+  ghostEl.innerHTML = SHIP_SVG;
+  const ghost = new maplibregl.Marker({ element: ghostEl, anchor: 'center' })
+                          .setLngLat([0, 0]);
+  let ghostOnMap = false;
+
+  const spawnEl = document.createElement('div');
+  spawnEl.className = 'ship-marker placed';
+  spawnEl.innerHTML = SHIP_SVG;
+  const spawnMarker = new maplibregl.Marker({ element: spawnEl, anchor: 'center' });
+  let spawnOnMap = false;
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const fmtLat = (lat) => {
+    const h = lat >= 0 ? 'N' : 'S';
+    const a = Math.abs(lat), d = Math.floor(a), m = (a - d) * 60;
+    return `${pad2(d)}°${m.toFixed(1).padStart(4, '0')}′${h}`;
+  };
+  const fmtLon = (lon) => {
+    const h = lon >= 0 ? 'E' : 'W';
+    const a = Math.abs(lon), d = Math.floor(a), m = (a - d) * 60;
+    return `${pad2(d)}°${m.toFixed(1).padStart(4, '0')}′${h}`;
+  };
+
+  function setStatus(kind, text) {
+    statusEl.className = 'm-status' + (kind ? ' ' + kind : '');
+    statusEl.textContent = text;
+    if (kind === 'bad') {
+      statusEl.classList.remove('shake');
+      void statusEl.offsetWidth;
+      statusEl.classList.add('shake');
+    }
+  }
+
+  function isWater(lngLat) {
+    if (!window.__mapReady) return null;
+    if (!window.__hasWaterLayer) return true;
+    const p = map.project(lngLat);
+    const feats = map.queryRenderedFeatures(
+      [[p.x - 1, p.y - 1], [p.x + 1, p.y + 1]]
+    );
+    return feats.some(f => {
+      const sl = (f.sourceLayer || '').toLowerCase();
+      const id = (f.layer && f.layer.id ? f.layer.id : '').toLowerCase();
+      const isWaterLayer = sl === 'water' || id.includes('water');
+      const isPoly = !!(f.geometry && /Polygon/.test(f.geometry.type));
+      return isWaterLayer && isPoly;
+    });
+  }
+
+  function whenReady(fn) {
+    if (window.__mapReady) return fn();
+    const iv = setInterval(() => {
+      if (window.__mapReady) { clearInterval(iv); fn(); }
+    }, 100);
+  }
+  whenReady(() => {
+    setStatus('wait', 'Chart ready — click on open water to place your vessel.');
+  });
+
+  const onMove = (e) => {
+    if (!window.__mapReady || gameStarted) return;
+    const ok = isWater(e.lngLat);
+    if (ok === null) return;
+    ghost.setLngLat(e.lngLat);
+    if (!ghostOnMap) { ghost.addTo(map); ghostOnMap = true; }
+    ghostEl.classList.toggle('ok',  ok);
+    ghostEl.classList.toggle('bad', !ok);
+    map.getCanvas().style.cursor = ok ? 'crosshair' : 'not-allowed';
+  };
+  const onOut = () => {
+    if (ghostOnMap) { ghost.remove(); ghostOnMap = false; }
+    map.getCanvas().style.cursor = '';
+  };
+  const onClick = (e) => {
+    if (!window.__mapReady || gameStarted) return;
+    const ok = isWater(e.lngLat);
+    if (ok === null) return;
+    if (!ok) { setStatus('bad', '✕  Invalid position — land or shallow water.'); return; }
+    selected = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+    spawnMarker.setLngLat([selected.lng, selected.lat]);
+    if (!spawnOnMap) { spawnMarker.addTo(map); spawnOnMap = true; }
+    latEl.textContent = fmtLat(selected.lat);
+    lonEl.textContent = fmtLon(selected.lng);
+    setStatus('ok', '✔  Position locked — ' + fmtLat(selected.lat) + ' ' + fmtLon(selected.lng));
+    startBtn.disabled = false;
+  };
+
+  map.on('mousemove', onMove);
+  map.on('mouseout',  onOut);
+  map.on('click',     onClick);
+
+  function startVoyage() {
+    if (gameStarted || !selected) return;
+    gameStarted = true;
+    window.__shipMarker = spawnMarker;
+    spawnEl.style.setProperty('--hdg', '90deg');
+    if (ghostOnMap) { ghost.remove(); ghostOnMap = false; }
+    map.getCanvas().style.cursor = '';
+    map.off('mousemove', onMove);
+    map.off('mouseout',  onOut);
+    map.off('click',     onClick);
+    menu.classList.add('hidden');
+    $('bridge').classList.remove('hidden');
+    window.__beginGame({ lon: selected.lng, lat: selected.lat, heading: 90 });
+  }
+
+  startBtn.addEventListener('click', startVoyage);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !startBtn.disabled) startVoyage();
+  });
+})();
+
+/* =========================================================================
+   4. CHART TOOLS
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const map = window.__shipMap;
+
+  const OPENSEAMAP_TILES = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
+  let nauticalOn   = false;
+  let openseamapAdded = false;
+
+  function addNauticalSource() {
+    if (openseamapAdded) return;
+    map.addSource('openseamap', {
+      type: 'raster',
+      tiles: [OPENSEAMAP_TILES],
+      tileSize: 256,
+      attribution: '© OpenSeaMap contributors'
+    });
+    map.addLayer({
+      id: 'openseamap-layer',
+      type: 'raster',
+      source: 'openseamap',
+      paint: { 'raster-opacity': 1.0 }
+    });
+    openseamapAdded = true;
+  }
+
+  function toggleNautical() {
+    if (!openseamapAdded) addNauticalSource();
+    nauticalOn = !nauticalOn;
+    map.setLayoutProperty(
+      'openseamap-layer',
+      'visibility',
+      nauticalOn ? 'visible' : 'none'
+    );
+    const btn = $('t-nautical');
+    btn.classList.toggle('active', nauticalOn);
+    btn.querySelector('span:last-child').textContent =
+      nauticalOn ? 'Nautical: ON' : 'Nautical chart';
+  }
+
+  $('t-nautical').addEventListener('click', () => {
+    if (!window.__isGameStarted()) return;
+    toggleNautical();
+  });
+
+  const waypoints = [];
+  let waypointModeOn = false;
+  let waypointClickHandler = null;
+
+  function haversineNm(lat1, lon1, lat2, lon2) {
+    const R = 3440.065;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  function refreshRouteLine() {
+    const coords = waypoints.map(w => [w.lng, w.lat]);
+    const data = {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: coords }
+    };
+    if (map.getSource('route-line')) {
+      map.getSource('route-line').setData(data);
+    } else {
+      map.addSource('route-line', { type: 'geojson', data });
+      map.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route-line',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#4fd6ff',
+          'line-width': 2,
+          'line-dasharray': [2, 2],
+          'line-opacity': 0.9
+        }
+      });
+    }
+  }
+
+  function updateWpInfo() {
+    $('wp-count').textContent = waypoints.length;
+    let total = 0;
+    for (let i = 1; i < waypoints.length; i++) {
+      total += haversineNm(
+        waypoints[i-1].lat, waypoints[i-1].lng,
+        waypoints[i].lat,   waypoints[i].lng
+      );
+    }
+    $('wp-dist').textContent = total.toFixed(1) + ' nm';
+  }
+
+  function addWaypoint(lngLat) {
+    const idx = waypoints.length;
+    const el = document.createElement('div');
+    el.className = 'waypoint-marker';
+    el.textContent = String(idx + 1);
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeWaypoint(idx);
+    });
+    const marker = new maplibregl.Marker({
+      element: el,
+      anchor: 'center'
+    }).setLngLat([lngLat.lng, lngLat.lat]).addTo(map);
+    waypoints.push({ lng: lngLat.lng, lat: lngLat.lat, marker });
+    refreshRouteLine();
+    updateWpInfo();
+  }
+
+  function removeWaypoint(index) {
+    if (index < 0 || index >= waypoints.length) return;
+    waypoints[index].marker.remove();
+    waypoints.splice(index, 1);
+    waypoints.forEach((wp, i) => {
+      wp.marker.getElement().textContent = String(i + 1);
+    });
+    refreshRouteLine();
+    updateWpInfo();
+  }
+
+  function clearWaypoints() {
+    waypoints.forEach(wp => wp.marker.remove());
+    waypoints.length = 0;
+    refreshRouteLine();
+    updateWpInfo();
+  }
+
+  function setWaypointMode(on) {
+    waypointModeOn = on;
+    const btn = $('t-waypoint');
+    btn.classList.toggle('active', on);
+    btn.querySelector('span:last-child').textContent =
+      on ? 'Waypoint: ON' : 'Waypoint mode';
+
+    if (on) {
+      if (!waypointClickHandler) {
+        waypointClickHandler = (e) => {
+          if (!window.__isGameStarted()) return;
+          if (!waypointModeOn) return;
+          if (e.originalEvent && e.originalEvent.defaultPrevented) return;
+          addWaypoint(e.lngLat);
+        };
+      }
+      map.on('click', waypointClickHandler);
+      map.getCanvas().style.cursor = 'crosshair';
+    } else {
+      if (waypointClickHandler) map.off('click', waypointClickHandler);
+      map.getCanvas().style.cursor = '';
+    }
+  }
+
+  $('t-waypoint').addEventListener('click', () => {
+    if (!window.__isGameStarted()) return;
+    setWaypointMode(!waypointModeOn);
+  });
+
+  $('t-clear').addEventListener('click', () => {
+    if (!window.__isGameStarted()) return;
+    clearWaypoints();
+  });
+
+  updateWpInfo();
+  window.__waypoints = waypoints;
+})();
+
+/* =========================================================================
+   5. VHF RADIO
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+
+  // =========================================================
+  // Audio engine (Web Audio API)
+  // =========================================================
+  let audioCtx      = null;
+  let staticGain    = null;
+  let muted         = false;
+
+  function ensureAudio() {
+    if (audioCtx) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return;
+    }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Persistent low-level band-passed white noise = radio static hum
+      const bufSize = audioCtx.sampleRate * 2;
+      const buffer  = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data    = buffer.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1600;
+      filter.Q.value = 0.7;
+
+      staticGain = audioCtx.createGain();
+      staticGain.gain.value = 0;
+
+      src.connect(filter).connect(staticGain).connect(audioCtx.destination);
+      src.start();
+    } catch (e) {
+      console.warn('[VHF] Audio init failed:', e);
+    }
+  }
+
+  function setStatic(level) {
+    if (!audioCtx || !staticGain) return;
+    const target = muted ? 0 : Math.max(0, level);
+    const now = audioCtx.currentTime;
+    staticGain.gain.cancelScheduledValues(now);
+    staticGain.gain.linearRampToValueAtTime(target, now + 0.12);
+  }
+
+  function beep(freq = 900, dur = 0.06, vol = 0.1) {
+    if (!audioCtx || muted) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    o.connect(g).connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.setValueAtTime(vol, now + dur - 0.015);
+    g.gain.linearRampToValueAtTime(0, now + dur);
+    o.start(now);
+    o.stop(now + dur + 0.02);
+  }
+
+  function noiseBurst(dur = 0.12, vol = 0.16) {
+    if (!audioCtx || muted) return;
+    const bufSize = Math.floor(audioCtx.sampleRate * dur);
+    const buffer  = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data    = buffer.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1400;
+    filter.Q.value = 0.5;
+    const g = audioCtx.createGain();
+    g.gain.value = vol;
+    src.connect(filter).connect(g).connect(audioCtx.destination);
+    src.start();
+  }
+
+  function rogerBeep() {
+    beep(1100, 0.06, 0.09);
+    setTimeout(() => beep(1100, 0.06, 0.09), 90);
+  }
+
+  function distressAlarm() {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => beep(700, 0.24, 0.15), i * 480);
+      setTimeout(() => beep(1000, 0.24, 0.15), i * 480 + 240);
+    }
+  }
+
+  // =========================================================
+  // Text-to-speech (best-effort radio voice)
+  // =========================================================
+  function speak(text, onEnd) {
+    if (muted || !('speechSynthesis' in window)) { onEnd && onEnd(); return; }
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.95;
+      u.pitch = 0.9;
+      u.volume = Math.min(1, radio.volume / 100);
+      u.onend = () => onEnd && onEnd();
+      u.onerror = () => onEnd && onEnd();
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) { onEnd && onEnd(); }
+  }
+
+  // =========================================================
+  // Radio state
+  // =========================================================
+  const radio = {
+    ch: 16,
+    volume: 65,
+    squelch: 40,
+    state: 'idle',       // idle | rx | tx | scan
+    ptt: false,
+    scanning: false,
+    scanTimer: null,
+    chatterTimer: null,
+    log: []
+  };
+
+  const CHANNELS = {
+    6:  { name: 'Intership',           traffic: 0.5 },
+    9:  { name: 'Harbour',             traffic: 0.35 },
+    10: { name: 'Harbour',             traffic: 0.35 },
+    13: { name: 'Bridge-to-bridge',    traffic: 0.7 },
+    15: { name: 'Port ops',            traffic: 0.5 },
+    16: { name: 'Distress & calling',  traffic: 0.8 },
+    72: { name: 'Intership',           traffic: 0.5 },
+    77: { name: 'Intership',           traffic: 0.5 }
+  };
+
+  // =========================================================
+  // Log
+  // =========================================================
+  function logAdd(kind, text) {
+    const now = new Date();
+    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    radio.log.unshift({ kind, text, t });
+    if (radio.log.length > 60) radio.log.pop();
+    renderLog();
+  }
+
+  function renderLog() {
+    const el = $('vhf-log');
+    if (!el) return;
+    el.innerHTML = radio.log.slice(0, 40).map(e => `
+      <div class="entry ${e.kind}">
+        <span class="t">${e.t}</span>
+        <span>${e.text}</span>
+      </div>
+    `).join('');
+  }
+
+  // =========================================================
+  // UI updates
+  // =========================================================
+  function updateStatus() {
+    const ind = $('vhf-state');
+    ind.textContent = radio.state.toUpperCase();
+    ind.className = 'vhf-ind ' + radio.state;
+
+    const bars = $('vhf-bars');
+    let sig = 3;
+    if (radio.state === 'rx' || radio.state === 'tx') sig = 4;
+    else if (radio.state === 'scan') sig = 2;
+    bars.className = 'vhf-bars sig-' + sig;
+
+    $('vhf-ch-name').textContent = (CHANNELS[radio.ch]?.name) || '—';
+    $('vhf-pw').textContent = '25W';
+    $('vhf-sq').textContent = radio.ch === 16
+      ? 'OFF (16)'
+      : (radio.squelch >= 90 ? 'CLOSED' : 'AUTO');
+  }
+
+  function updateStaticHum() {
+    let level = 0;
+    if (radio.state === 'rx') level = 0.018;
+    else if (radio.state === 'scan') level = 0.014;
+    else if (radio.state === 'idle') level = 0.004;
+    setStatic(level);
+  }
+
+  // =========================================================
+  // Channel change
+  // =========================================================
+  function setChannel(ch) {
+    if (ch === radio.ch) return;
+    radio.ch = ch;
+    $('vhf-ch').innerHTML = ch + ' <small>CHANNEL</small>';
+    [...$('vhf-keys').children].forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.ch, 10) === ch));
+    beep(880, 0.05, 0.07);
+    logAdd('ch', `CH ${ch} · ${CHANNELS[ch]?.name || ''}`);
+    updateStatus();
+    updateStaticHum();
+    scheduleChatter();
+  }
+
+  // =========================================================
+  // Scripted chatter
+  // =========================================================
+  const CHATTER = {
+    6: [
+      { from: 'MV Aurora', text: 'Aurora, switch to channel seven two.' },
+      { from: 'Fishing vessel San Marco', text: 'San Marco, nets clear, proceeding south.' }
+    ],
+    9: [
+      { from: 'Port Control', text: 'All vessels, harbour channel nine, how do you read?' },
+      { from: 'MV Levante', text: 'Port control, Levante, reading you loud and clear.' }
+    ],
+    10: [
+      { from: 'Marina office', text: 'Berth three is now available for the incoming yacht.' }
+    ],
+    13: [
+      { from: 'MV Tirreno', text: 'Tirreno on your port bow, crossing, please confirm.' },
+      { from: 'Pilot boat Alfa', text: 'Coming alongside on your starboard side.' }
+    ],
+    15: [
+      { from: 'Port ops', text: 'Tug is standing by at the breakwater.' },
+      { from: 'Mooring team', text: 'Lines ready on pier four.' }
+    ],
+    16: [
+      { from: 'Coast Guard', text: 'All stations, this is Coast Guard, radio check.' },
+      { from: 'MV Atlas', text: 'Coast Guard, Atlas, reading you five by five.' }
+    ],
+    72: [
+      { from: 'MV Atlas', text: 'Good afternoon, no traffic in vicinity.' },
+      { from: 'MV Aurora', text: 'Roger that, will take the western route.' }
+    ],
+    77: [
+      { from: 'Yacht Bella', text: 'Bella calling Neptune Star, do you copy?' }
+    ]
+  };
+
+  let speakingQueue = 0;
+
+  function scheduleChatter() {
+    if (radio.chatterTimer) clearTimeout(radio.chatterTimer);
+    const chInfo = CHANNELS[radio.ch];
+    if (!chInfo) return;
+    const baseDelay = 12000 + (1 - chInfo.traffic) * 25000;
+    const delay = baseDelay + Math.random() * 20000;
+    radio.chatterTimer = setTimeout(() => {
+      if (!radio.scanning && !radio.ptt) fireChatter();
+      scheduleChatter();
+    }, delay);
+  }
+
+  function fireChatter() {
+    const lines = CHATTER[radio.ch];
+    if (!lines || !lines.length || speakingQueue > 0) return;
+
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    radio.state = 'rx';
+    updateStatus();
+    updateStaticHum();
+    noiseBurst(0.15, 0.10);
+    logAdd('rx', `${line.from}: "${line.text}"`);
+    speakingQueue++;
+
+    setTimeout(() => {
+      speak(line.text, () => {
+        rogerBeep();
+        speakingQueue = Math.max(0, speakingQueue - 1);
+        setTimeout(() => {
+          if (!radio.scanning && !radio.ptt && speakingQueue === 0) {
+            radio.state = 'idle';
+            updateStatus();
+            updateStaticHum();
+          }
+        }, 600);
+      });
+    }, 350);
+
+    // Safety: if speech never fires onEnd, release after 10s.
+    setTimeout(() => {
+      if (speakingQueue > 0) {
+        speakingQueue = Math.max(0, speakingQueue - 1);
+        if (!radio.scanning && !radio.ptt && speakingQueue === 0) {
+          radio.state = 'idle';
+          updateStatus();
+          updateStaticHum();
+        }
+      }
+    }, 10000);
+  }
+
+  // =========================================================
+  // Channel scan
+  // =========================================================
+  const SCAN_ORDER = [6, 9, 10, 13, 15, 16, 72, 77];
+
+  function startScan() {
+    if (radio.scanning) return;
+    radio.scanning = true;
+    radio.state = 'scan';
+    $('scan-btn').classList.add('on');
+    $('scan-btn').textContent = 'STOP';
+    logAdd('sys', 'Scan started.');
+    updateStatus();
+    updateStaticHum();
+    scanStep();
+  }
+  function stopScan() {
+    if (!radio.scanning) return;
+    radio.scanning = false;
+    if (radio.scanTimer) { clearTimeout(radio.scanTimer); radio.scanTimer = null; }
+    radio.state = 'idle';
+    $('scan-btn').classList.remove('on');
+    $('scan-btn').textContent = 'SCAN';
+    logAdd('sys', 'Scan stopped.');
+    updateStatus();
+    updateStaticHum();
+  }
+  function scanStep() {
+    if (!radio.scanning) return;
+    const idx  = SCAN_ORDER.indexOf(radio.ch);
+    const next = SCAN_ORDER[(idx + 1) % SCAN_ORDER.length];
+    setChannel(next);
+    updateStaticHum();
+    radio.scanTimer = setTimeout(scanStep, 1800);
+  }
+
+  // =========================================================
+  // PTT
+  // =========================================================
+  function startPTT() {
+    if (radio.ptt || radio.scanning) return;
+    radio.ptt = true;
+    radio.state = 'tx';
+    $('ptt-btn').classList.add('active');
+    updateStatus();
+    updateStaticHum();
+    beep(1500, 0.05, 0.08);
+    logAdd('tx', `Transmitting on CH ${radio.ch}…`);
+  }
+  function stopPTT() {
+    if (!radio.ptt) return;
+    radio.ptt = false;
+    radio.state = 'idle';
+    $('ptt-btn').classList.remove('active');
+    rogerBeep();
+    logAdd('sys', 'Transmission ended.');
+    updateStatus();
+    updateStaticHum();
+  }
+
+  // =========================================================
+  // DSC distress (two-step arm)
+  // =========================================================
+  let dscSent   = false;
+  let dscArmed  = false;
+  let dscTimer  = null;
+
+  function armDsc() {
+    if (dscSent) return;
+    if (!dscArmed) {
+      dscArmed = true;
+      const btn = $('dsc-btn');
+      btn.classList.add('armed');
+      btn.textContent = 'CONFIRM';
+      logAdd('sys', 'DSC distress armed — click again to transmit.');
+      dscTimer = setTimeout(() => {
+        dscArmed = false;
+        btn.classList.remove('armed');
+        btn.textContent = 'DSC';
+        logAdd('sys', 'DSC arm timed out.');
+      }, 5000);
+      return;
+    }
+    clearTimeout(dscTimer);
+    dscArmed = false;
+    sendDistress();
+  }
+
+  function sendDistress() {
+    if (dscSent) return;
+    dscSent = true;
+
+    const btn = $('dsc-btn');
+    btn.classList.remove('armed');
+    btn.classList.add('sent');
+    btn.textContent = 'SENT';
+
+    const sp = window.__ship || { lat: 0, lon: 0 };
+    const pos = fmtLat(sp.lat) + ' ' + fmtLon(sp.lon);
+
+    radio.state = 'tx';
+    updateStatus();
+    updateStaticHum();
+
+    logAdd('dsc', '◉ DSC DISTRESS ALERT TRANSMITTED');
+    logAdd('dsc', `Position: ${pos}`);
+    logAdd('dsc', 'Nature: Undesignated');
+    distressAlarm();
+
+    setTimeout(() => {
+      if (!radio.ptt) { radio.state = 'idle'; updateStatus(); updateStaticHum(); }
+    }, 3200);
+
+    // Simulated Coast Guard response
+    setTimeout(() => {
+      radio.state = 'rx';
+      updateStatus();
+      updateStaticHum();
+      noiseBurst(0.2, 0.14);
+      const msg = 'Vessel in distress, this is Coast Guard, acknowledge.';
+      logAdd('rx', `Coast Guard: "${msg}"`);
+      speak(msg, () => {
+        rogerBeep();
+        setTimeout(() => {
+          if (!radio.ptt) { radio.state = 'idle'; updateStatus(); updateStaticHum(); }
+        }, 800);
+      });
+    }, 5600);
+  }
+
+  // =========================================================
+  // Interactive knobs (drag up/down or mouse-wheel)
+  // =========================================================
+  function makeKnob(el, getter, setter, min = 0, max = 100) {
+    let dragging = false;
+    let startY   = 0;
+    let startVal = 0;
+
+    const onDown = (e) => {
+      ensureAudio();
+      dragging = true;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      startY = y;
+      startVal = getter();
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      const y  = e.touches ? e.touches[0].clientY : e.clientY;
+      const dy = startY - y;
+      const range = max - min;
+      const nv = Math.max(min, Math.min(max, startVal + dy * range / 120));
+      setter(Math.round(nv));
+      e.preventDefault();
+    };
+    const onUp = () => { dragging = false; };
+
+    el.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('touchstart', onDown, { passive: false });
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+    el.addEventListener('wheel', (e) => {
+      ensureAudio();
+      e.preventDefault();
+      const step = e.deltaY < 0 ? 5 : -5;
+      setter(Math.max(min, Math.min(max, getter() + step)));
+    }, { passive: false });
+  }
+
+  // =========================================================
+  // Init
+  // =========================================================
+  function fmtLat(lat) {
+    const h = lat >= 0 ? 'N' : 'S';
+    const a = Math.abs(lat);
+    const d = Math.floor(a);
+    const m = (a - d) * 60;
+    return `${String(d).padStart(2,'0')}°${m.toFixed(1).padStart(4,'0')}′${h}`;
+  }
+  function fmtLon(lon) {
+    const h = lon >= 0 ? 'E' : 'W';
+    const a = Math.abs(lon);
+    const d = Math.floor(a);
+    const m = (a - d) * 60;
+    return `${String(d).padStart(2,'0')}°${m.toFixed(1).padStart(4,'0')}′${h}`;
+  }
+
+  let initialised = false;
+
+  function init() {
+    if (initialised) return;
+    initialised = true;
+
+    // Channel buttons
+    $('vhf-keys').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      ensureAudio();
+      if (radio.scanning) stopScan();
+      setChannel(parseInt(btn.dataset.ch, 10));
+    });
+
+    // Volume knob
+    makeKnob($('vol-dial'), () => radio.volume, (v) => {
+      radio.volume = v;
+      $('vol-v').textContent = v;
+      $('vol-dial').style.setProperty('--angle', ((v - 50) * 3.6) + 'deg');
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+    });
+
+    // Squelch knob
+    makeKnob($('sql-dial'), () => radio.squelch, (v) => {
+      radio.squelch = v;
+      $('sql-v').textContent = v;
+      $('sql-dial').style.setProperty('--angle', ((v - 50) * 3.6) + 'deg');
+      updateStatus();
+    });
+
+    // PTT
+    const ptt = $('ptt-btn');
+    ptt.addEventListener('mousedown', (e) => { e.preventDefault(); ensureAudio(); startPTT(); });
+    ptt.addEventListener('mouseup', stopPTT);
+    ptt.addEventListener('mouseleave', stopPTT);
+    ptt.addEventListener('touchstart', (e) => { e.preventDefault(); ensureAudio(); startPTT(); }, { passive: false });
+    ptt.addEventListener('touchend', stopPTT);
+    ptt.addEventListener('touchcancel', stopPTT);
+
+    // Scan
+    $('scan-btn').addEventListener('click', () => {
+      ensureAudio();
+      radio.scanning ? stopScan() : startScan();
+    });
+
+    // Mute
+    $('mute-btn').addEventListener('click', () => {
+      muted = !muted;
+      if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+      $('mute-btn').textContent = muted ? '🔇' : '🔊';
+      $('mute-btn').classList.toggle('on', muted);
+      updateStaticHum();
+    });
+
+    // DSC
+    $('dsc-btn').addEventListener('click', () => {
+      ensureAudio();
+      if (dscSent) return;
+      armDsc();
+    });
+
+    // Log clear
+    $('vhf-log-clear').addEventListener('click', () => {
+      radio.log.length = 0;
+      renderLog();
+    });
+
+    // Initial UI state
+    $('vhf-ch').innerHTML = radio.ch + ' <small>CHANNEL</small>';
+    [...$('vhf-keys').children].forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.ch, 10) === radio.ch));
+    $('vol-dial').style.setProperty('--angle', ((radio.volume - 50) * 3.6) + 'deg');
+    $('sql-dial').style.setProperty('--angle', ((radio.squelch - 50) * 3.6) + 'deg');
+    $('vol-v').textContent = radio.volume;
+    $('sql-v').textContent = radio.squelch;
+    updateStatus();
+    logAdd('sys', 'VHF radio online. Monitoring CH 16.');
+    scheduleChatter();
+  }
+
+  // Hook into game start
+  window.addEventListener('bridge:started', init);
+  if (window.__isGameStarted && window.__isGameStarted()) init();
+
+  // Keyboard: T = PTT, V = scan
+  window.addEventListener('keydown', (e) => {
+    if (!window.__isGameStarted || !window.__isGameStarted()) return;
+    if (!initialised) return;
+    const lk = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+    if (lk === 't') {
+      ensureAudio();
+      if (!radio.ptt) startPTT();
+      e.preventDefault();
+      return;
+    }
+    if (lk === 'v') {
+      ensureAudio();
+      radio.scanning ? stopScan() : startScan();
+      e.preventDefault();
+      return;
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    const lk = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (lk === 't') stopPTT();
+  });
+
+  // Expose for console debug
+  window.__radio = radio;
+})();
+</script>
+</body>
+</html>
