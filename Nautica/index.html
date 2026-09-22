@@ -17,7 +17,6 @@
   --led-amber: #fbbf24;
   --led-red:   #ff5566;
   --led-cyan:  #4fd6ff;
-  --led-blue:  #8ecbff;
   --text-dim:  #7c93b5;
   --text:      #cfe0f5;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -29,12 +28,14 @@ html, body { margin:0; height:100%; overflow:hidden;
 
 #map { position:absolute; inset:0; }
 
-#bridge {
+#daynight {
   position: absolute; inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  font-size: 11px;
+  pointer-events: none; z-index: 4;
+  background: rgba(6, 20, 45, 0);
+  transition: background 3s;
 }
+
+#bridge { position: absolute; inset: 0; pointer-events: none; z-index: 5; font-size: 11px; }
 #bridge.hidden { display: none; }
 
 .panel {
@@ -62,7 +63,7 @@ html, body { margin:0; height:100%; overflow:hidden;
 #topbar .panel { position: relative; height: 100%; }
 #vessel {
   flex: 1 1 40%;
-  display: flex; align-items: center; padding: 0 14px; gap: 16px;
+  display: flex; align-items: center; padding: 0 14px; gap: 14px;
 }
 #vessel .flag { width: 22px; height: 15px; background: #c8102e;
   border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
@@ -77,6 +78,17 @@ html, body { margin:0; height:100%; overflow:hidden;
 #vessel .pill.live { background:#0b3d22; border-color:#1e6b3d; color: var(--led-green); }
 #vessel .pill.idle { background:#3a2a0b; border-color:#8b6212; color: var(--led-amber); }
 #vessel .pill.dead { background:#3a0d12; border-color:#7f1d1d; color: var(--led-red); }
+
+.pill.wx {
+  font-size: 9px; letter-spacing: .12em;
+  transition: all .25s;
+  background: #1b2b45; border-color: #2b446b; color: var(--text-dim);
+}
+.pill.wx.live    { background:#0b3d22; border-color:#1e6b3d; color: var(--led-green);
+  box-shadow: 0 0 10px rgba(74,222,128,.25); }
+.pill.wx.loading { background:#221703; border-color:#8b6212; color: var(--led-amber);
+  animation: pulse 1.2s infinite; }
+.pill.wx.error   { background:#210a0d; border-color:#7f1d1d; color: var(--led-red); }
 
 #voyage { flex: 1 1 30%; display: flex; align-items: center; padding: 0 14px; gap: 12px;
   font-family: var(--mono); }
@@ -176,7 +188,6 @@ html, body { margin:0; height:100%; overflow:hidden;
 .tank .bar.bw   i { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
 .tank b { color: var(--text); text-align:right; font-weight:500; }
 
-/* -------- RIGHT: COMMS -------- */
 #comms {
   top: 78px; right: 10px; width: 300px; bottom: 108px;
   display: flex; flex-direction: column;
@@ -201,7 +212,6 @@ html, body { margin:0; height:100%; overflow:hidden;
   color: var(--text-dim); font-size: 10px; }
 .vhf-display .meta b { color: var(--text); }
 
-/* VHF status row */
 .vhf-status {
   display: flex; align-items: center; justify-content: space-between;
   padding: 5px 8px; border-radius: 4px;
@@ -260,7 +270,6 @@ html, body { margin:0; height:100%; overflow:hidden;
 .knob small { color: var(--text-dim); font-size: 9px; letter-spacing:.1em; text-transform: uppercase; }
 .knob b { font-family: var(--mono); font-size: 11px; }
 
-/* VHF action buttons */
 .vhf-actions {
   display: grid; grid-template-columns: 1.2fr 1fr 44px 1.2fr; gap: 5px;
 }
@@ -290,7 +299,6 @@ html, body { margin:0; height:100%; overflow:hidden;
   animation: none;
 }
 
-/* Radio log */
 .vhf-log-title {
   display: flex; justify-content: space-between; align-items: center;
   font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
@@ -327,10 +335,10 @@ html, body { margin:0; height:100%; overflow:hidden;
 .vhf-log .entry.ch  { color: #a78bfa; }
 .vhf-log .entry.dsc { color: var(--led-red); font-weight: 700;
   background: rgba(127,29,29,.25); }
+.vhf-log .entry.evt { color: #f0abfc; font-weight: 600; }
 
 @keyframes blink { 50% { opacity: .35; } }
 
-/* -------- CENTER: COMPASS + REPEATERS -------- */
 #nav {
   position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 10px; pointer-events: none;
@@ -416,10 +424,28 @@ html, body { margin:0; height:100%; overflow:hidden;
 }
 .rudder-ctrl button:disabled { opacity: .35; cursor: not-allowed; }
 
-/* -------- CHART TOOLS -------- */
-#tools {
-  top: 78px; left: 280px; width: 150px;
+.ap-ctrl {
+  display: grid; grid-template-columns: 1fr 1fr 44px; gap: 4px;
+  margin: 6px 0 4px;
 }
+.ap-ctrl button {
+  padding: 7px 0;
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 10px; border-radius: 4px;
+  cursor: pointer; letter-spacing: .06em; user-select: none;
+  transition: .12s;
+}
+.ap-ctrl button:hover { background: #1b2b45; }
+.ap-ctrl button.active {
+  background: #06304a; border-color: #0e7490; color: var(--led-cyan);
+  box-shadow: 0 0 10px rgba(79,214,255,.35);
+}
+.ap-ctrl button.anchor.active {
+  background: #3a2a0b; border-color: #8b6212; color: var(--led-amber);
+  box-shadow: 0 0 10px rgba(251,191,36,.4);
+}
+
+#tools { top: 78px; left: 280px; width: 168px; }
 #tools .body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .tool-btn {
   padding: 8px 10px;
@@ -448,19 +474,55 @@ html, body { margin:0; height:100%; overflow:hidden;
 }
 .tools-info b { color: var(--led-cyan); font-weight: 500; }
 
-/* -------- BOTTOM BAR -------- */
+.dest-select {
+  width: 100%; padding: 6px 8px;
+  background: #132133; border: 1px solid #24405f; color: var(--text);
+  font-family: var(--mono); font-size: 10px;
+  border-radius: 4px; cursor: pointer; letter-spacing: .06em;
+}
+.dest-select:hover { background: #1b2b45; }
+.dest-select:focus { outline: none; border-color: #0e7490; }
+
+#ecdis-panel {
+  top: 78px; left: 458px; width: 200px;
+  display: none;
+}
+#ecdis-panel.on { display: block; }
+#ecdis-panel .body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.ecdis-cursor {
+  background: #03060c; border: 1px solid #17283f; border-radius: 4px;
+  padding: 6px 8px; font-family: var(--mono); font-size: 10px;
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 6px;
+}
+.ecdis-cursor span:nth-child(odd) { color: var(--text-dim); letter-spacing: .06em; }
+.ecdis-cursor span:nth-child(even) { color: var(--led-cyan); text-align: right; }
+.ecdis-row { display: grid; grid-template-columns: 1fr auto;
+  font-family: var(--mono); font-size: 10px; }
+.ecdis-row span:first-child { color: var(--text-dim); }
+.ecdis-row span:last-child { color: var(--text); }
+.ecdis-mob {
+  width: 100%; padding: 8px;
+  background: #7f1d1d; border: 1px solid #ef4444; color: #fff;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+  border-radius: 4px; cursor: pointer; font-weight: 700;
+  transition: .15s;
+}
+.ecdis-mob:hover { background: #991b1b; box-shadow: 0 0 14px rgba(239,68,68,.5); }
+
 #bottom {
   position: absolute; left: 10px; right: 10px; bottom: 10px; height: 90px;
   display: flex; gap: 8px; pointer-events: none;
 }
 #bottom .panel { position: relative; height: 100%; flex: 1 1 0; padding: 8px 10px;
-  display: flex; flex-direction: column; gap: 4px; }
+  display: flex; flex-direction: column; gap: 3px; }
 #bottom .k { font-size: 9px; letter-spacing:.14em; color: var(--text-dim);
   text-transform: uppercase; }
 #bottom .v { font-family: var(--mono); font-size: 16px; color: var(--text); }
 #bottom .v b { font-size: 22px; color: var(--led-cyan);
   text-shadow: 0 0 10px rgba(79,214,255,.5); }
 #bottom .v small { font-size: 10px; color: var(--text-dim); margin-left: 4px; }
+#bottom .v.sub { font-size: 10px; color: var(--text-dim); }
+#bottom .v.sub span { color: var(--text); }
 
 #help {
   position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
@@ -474,22 +536,60 @@ html, body { margin:0; height:100%; overflow:hidden;
 
 .maplibregl-ctrl-top-right { top: 70px; }
 
-/* =========================================================
-   START MENU
-   ========================================================= */
+#shallow-hud {
+  position: absolute;
+  top: 78px; left: 50%; transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .12em;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 7;
+  display: none;
+  transition: opacity .2s;
+  text-align: center;
+  border: 2px solid;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#shallow-hud.on { display: block; }
+#shallow-hud.warn {
+  background: rgba(58, 42, 11, .85);
+  border-color: #8b6212;
+  color: var(--led-amber);
+  box-shadow: 0 0 30px rgba(251, 191, 36, .35);
+}
+#shallow-hud.danger {
+  background: rgba(58, 13, 18, .9);
+  border-color: #7f1d1d;
+  color: #fca5a5;
+  box-shadow: 0 0 40px rgba(255, 85, 102, .55);
+  animation: pulse .7s infinite;
+}
+#shallow-hud .sub {
+  font-size: 9px;
+  letter-spacing: .18em;
+  font-weight: 400;
+  opacity: .85;
+  margin-top: 3px;
+}
+
 #menu {
   position: absolute; inset: 0; z-index: 20;
-  display: flex; align-items: center; padding-left: 48px;
+  display: flex; align-items: center; justify-content: center;
   pointer-events: none;
   background: radial-gradient(120% 110% at 45% 50%,
               rgba(3,8,16,.10) 0%, rgba(3,8,16,.62) 100%);
   transition: opacity .45s ease, visibility .45s;
+  overflow-y: auto;
 }
 #menu.hidden { opacity: 0; visibility: hidden; }
 
 .menu-card {
   pointer-events: auto;
-  width: 348px; padding: 18px 18px 14px;
+  width: 400px; padding: 18px 18px 14px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-brd);
   border-radius: 12px;
@@ -497,6 +597,9 @@ html, body { margin:0; height:100%; overflow:hidden;
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 16px 56px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.04);
   font-size: 12px;
+  margin: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 .menu-head { display: flex; align-items: center; gap: 12px; }
@@ -524,6 +627,33 @@ html, body { margin:0; height:100%; overflow:hidden;
   color: var(--text-dim); margin-bottom: 4px; }
 .readout b { font-family: var(--mono); font-size: 13px; color: var(--led-cyan);
   letter-spacing: .04em; }
+
+.vessel-picker { display: grid; gap: 5px; margin-bottom: 4px; }
+.vessel-opt {
+  padding: 8px 10px;
+  background: #0b1422; border: 1px solid #1b2b45;
+  color: var(--text);
+  font-family: var(--mono); text-align: left;
+  border-radius: 6px; cursor: pointer; transition: .15s;
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+}
+.vessel-opt:hover { border-color: #3a5d8a; background: #0f1c30; }
+.vessel-opt.active {
+  background: #06304a; border-color: #0e7490;
+  box-shadow: 0 0 12px rgba(79,214,255,.28);
+}
+.vessel-opt .vo-name { font-size: 12px; font-weight: 600; letter-spacing: .05em; }
+.vessel-opt.active .vo-name { color: var(--led-cyan); }
+.vessel-opt .vo-tag {
+  font-size: 9px; letter-spacing: .1em; color: var(--text-dim);
+  padding: 1px 6px; border-radius: 999px; border: 1px solid #1b2b45;
+}
+.vessel-opt.active .vo-tag { color: var(--led-cyan); border-color: #0e7490; }
+.vessel-opt .vo-specs {
+  font-size: 9px; letter-spacing: .04em; color: var(--text-dim);
+  grid-column: 1 / -1;
+}
+.vessel-opt.active .vo-specs { color: #8ecbff; }
 
 .m-status {
   margin-top: 10px; padding: 8px 10px; border-radius: 6px;
@@ -586,50 +716,79 @@ html, body { margin:0; height:100%; overflow:hidden;
 }
 .waypoint-marker:hover { transform: scale(1.15); }
 
-/* =========================================================
-   CRASH OVERLAY
-   ========================================================= */
-#crash {
+.event-marker {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  border-radius: 4px;
+  pointer-events: none;
+  animation: evtPop .5s ease-out;
+}
+@keyframes evtPop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.event-marker.cardinal-N,
+.event-marker.cardinal-S { background: #facc15; color: #111; border: 2px solid #111; }
+.event-marker.cardinal-E,
+.event-marker.cardinal-W { background: #111; color: #facc15; border: 2px solid #facc15; }
+.event-marker.safe   { background: #dc2626; color: #fff; border: 2px solid #fff; }
+.event-marker.hazard { background: #111; color: #fca5a5; border: 2px solid #ef4444; }
+.event-marker.mob    { background: #dc2626; color: #fff; border: 2px solid #fca5a5;
+  animation: mobPulse 1s infinite; font-size: 10px; letter-spacing: .06em; }
+@keyframes mobPulse {
+  50% { box-shadow: 0 0 0 8px rgba(220,38,38,.15); }
+}
+
+#crash, #arrived {
   position: absolute; inset: 0; z-index: 30;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(40, 0, 5, .55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   pointer-events: auto;
   animation: fadeIn .35s ease-out;
 }
+#crash { background: rgba(40, 0, 5, .55); }
 #crash.hidden { display: none; }
+#arrived { background: rgba(5, 25, 12, .55); }
+#arrived.hidden { display: none; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.crash-card {
-  background: rgba(20, 2, 5, .94);
-  border: 2px solid #7f1d1d;
+.crash-card, .arrived-card {
   border-radius: 14px;
   padding: 32px 44px;
   text-align: center;
-  box-shadow: 0 0 90px rgba(255, 85, 102, .45), inset 0 0 40px rgba(255, 85, 102, .06);
   max-width: 480px;
 }
-.crash-card h2 {
+.crash-card {
+  background: rgba(20, 2, 5, .94);
+  border: 2px solid #7f1d1d;
+  box-shadow: 0 0 90px rgba(255, 85, 102, .45), inset 0 0 40px rgba(255, 85, 102, .06);
+}
+.arrived-card {
+  background: rgba(5, 25, 12, .94);
+  border: 2px solid #1e6b3d;
+  box-shadow: 0 0 90px rgba(74,222,128,.45), inset 0 0 40px rgba(74,222,128,.06);
+}
+.crash-card h2, .arrived-card h2 {
   margin: 0 0 6px;
   font-family: var(--mono);
   font-size: 30px;
   letter-spacing: .22em;
-  color: var(--led-red);
-  text-shadow: 0 0 22px rgba(255, 85, 102, .75);
   animation: blink 1.3s infinite;
 }
-.crash-card p {
+.crash-card h2 { color: var(--led-red); text-shadow: 0 0 22px rgba(255, 85, 102, .75); }
+.arrived-card h2 { color: var(--led-green); text-shadow: 0 0 22px rgba(74,222,128,.75); }
+.crash-card p, .arrived-card p {
   margin: 12px 0 22px;
   color: var(--text-dim);
   font-size: 12px;
   line-height: 1.7;
 }
-.crash-card p b { color: var(--text); font-family: var(--mono); }
-.crash-card button {
+.crash-card p b, .arrived-card p b { color: var(--text); font-family: var(--mono); }
+.arrived-card p b { font-size: 14px; }
+.crash-card button, .arrived-card button {
   padding: 12px 34px;
-  background: linear-gradient(180deg, #7f1d1d, #4a0d13);
-  border: 1px solid #ef4444;
   color: #fff;
   font-family: var(--mono);
   font-size: 12px;
@@ -638,29 +797,75 @@ html, body { margin:0; height:100%; overflow:hidden;
   cursor: pointer;
   transition: .18s;
 }
+.crash-card button {
+  background: linear-gradient(180deg, #7f1d1d, #4a0d13);
+  border: 1px solid #ef4444;
+}
 .crash-card button:hover { background: linear-gradient(180deg, #991b1b, #5c1018); }
+.arrived-card button {
+  background: linear-gradient(180deg, #0b3d22, #062615);
+  border: 1px solid #1e6b3d;
+  color: var(--led-green);
+}
+.arrived-card button:hover { background: linear-gradient(180deg, #0f5630, #0a3a1d); }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div id="daynight"></div>
+
+<div id="shallow-hud" class="">
+  <span id="shallow-text">SHALLOW WATER</span>
+  <div class="sub" id="shallow-sub">Depth alarm · reduce speed</div>
+</div>
 
 <div id="menu">
   <div class="menu-card">
     <div class="menu-head">
       <div class="flag"></div>
       <div>
-        <h1>MV NEPTUNE STAR</h1>
-        <p>BRIDGE SIMULATOR · GENOA → NAPLES</p>
+        <h1>BRIDGE SIMULATOR</h1>
+        <p>GENOA → NAPLES · MEDITERRANEAN</p>
       </div>
     </div>
 
     <div class="menu-sep"></div>
 
-    <div class="menu-step">01 · Select start position</div>
+    <div class="menu-step">01 · Select vessel class</div>
+    <div class="vessel-picker" id="vessel-picker">
+      <button type="button" class="vessel-opt active" data-class="launch">
+        <span class="vo-name">10 m Launch</span>
+        <span class="vo-tag">AGILE</span>
+        <span class="vo-specs">25 kn · pivots on the spot · no bridge</span>
+      </button>
+      <button type="button" class="vessel-opt" data-class="fishing">
+        <span class="vo-name">25 m Fishing Vessel</span>
+        <span class="vo-tag">COASTAL</span>
+        <span class="vo-specs">12 kn · 3.5 m draft · nimble</span>
+      </button>
+      <button type="button" class="vessel-opt" data-class="coaster">
+        <span class="vo-name">90 m Coaster</span>
+        <span class="vo-tag">TRAMP</span>
+        <span class="vo-specs">14 kn · 5.5 m draft · small bridge</span>
+      </button>
+      <button type="button" class="vessel-opt" data-class="bulker">
+        <span class="vo-name">200 m Bulk Carrier</span>
+        <span class="vo-tag">CARGO</span>
+        <span class="vo-specs">14 kn · 12 m draft · deep sea</span>
+      </button>
+      <button type="button" class="vessel-opt" data-class="tanker">
+        <span class="vo-name">330 m VLCC</span>
+        <span class="vo-tag">TANKER</span>
+        <span class="vo-specs">15 kn · 22 m draft · supertanker</span>
+      </button>
+    </div>
+
+    <div class="menu-sep"></div>
+
+    <div class="menu-step">02 · Place on the chart</div>
     <p class="menu-hint">
-      Click on open water to place your vessel. The position must be at sea —
-      land, ports and shallow areas are rejected.
+      Click on open water to place your vessel. Land and shallow areas are rejected.
     </p>
 
     <div class="readout">
@@ -672,7 +877,18 @@ html, body { margin:0; height:100%; overflow:hidden;
 
     <button id="m-start" class="start-btn" disabled>START VOYAGE</button>
 
-    <div class="menu-foot">Move the cursor over the chart · <kbd>Enter</kbd> to start</div>
+    <div class="menu-foot">Hover over the chart · <kbd>Enter</kbd> to start</div>
+  </div>
+</div>
+
+<div id="arrived" class="hidden">
+  <div class="arrived-card">
+    <h2>⚓ ARRIVED ⚓</h2>
+    <p>
+      Arrived at <b id="arr-name">—</b>.<br>
+      Voyage complete.
+    </p>
+    <button id="arr-continue">CONTINUE</button>
   </div>
 </div>
 
@@ -694,10 +910,11 @@ html, body { margin:0; height:100%; overflow:hidden;
     <div id="vessel" class="panel">
       <div class="flag"></div>
       <div>
-        <div class="name">MV NEPTUNE STAR</div>
-        <div class="sub">IMO 9577123 · MMSI 247314600 · CALL IBQS2</div>
+        <div class="name" id="vessel-name">MV NEPTUNE STAR</div>
+        <div class="sub" id="vessel-sub">IMO 9577123 · MMSI 247314600 · CALL IBQS2</div>
       </div>
       <div class="pill idle" id="status-pill">● STOPPED</div>
+      <div class="pill wx loading" id="wx-pill">◌ WX</div>
       <div class="pill" id="pos-pill">43°30.0′N 010°18.0′E</div>
     </div>
 
@@ -709,7 +926,7 @@ html, body { margin:0; height:100%; overflow:hidden;
       <div class="arrow"></div>
       <div class="port" style="text-align:right">
         <small>To</small>
-        <b>NAPLES</b>
+        <b id="voyage-to">NAPLES</b>
       </div>
     </div>
 
@@ -788,6 +1005,14 @@ html, body { margin:0; height:100%; overflow:hidden;
         <span class="dot-ind"></span>
         <span>Nautical chart</span>
       </button>
+      <button id="t-ecdis" class="tool-btn">
+        <span class="dot-ind"></span>
+        <span>ECDIS</span>
+      </button>
+      <button id="t-shallow" class="tool-btn active">
+        <span class="dot-ind"></span>
+        <span>Shallow zones</span>
+      </button>
       <button id="t-waypoint" class="tool-btn">
         <span class="dot-ind"></span>
         <span>Waypoint mode</span>
@@ -798,6 +1023,28 @@ html, body { margin:0; height:100%; overflow:hidden;
       </button>
       <div class="tools-info"><span>Waypoints</span><b id="wp-count">0</b></div>
       <div class="tools-info"><span>Route</span><b id="wp-dist">0.0 nm</b></div>
+      <div class="tools-info"><span>AIS targets</span><b id="ais-count">0</b></div>
+      <div class="tools-info"><span>Coast</span><b id="coast-info">--</b></div>
+      <select id="dest-select" class="dest-select">
+        <option value="">— Destination —</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="ecdis-panel" class="panel">
+    <div class="panel-title">ECDIS · Cursor</div>
+    <div class="body">
+      <div class="ecdis-cursor">
+        <span>LAT</span><span id="ec-lat">--°--.--′N</span>
+        <span>LON</span><span id="ec-lon">--°--.--′E</span>
+        <span>BRG</span><span id="ec-brg">---.-°</span>
+        <span>RNG</span><span id="ec-rng">--.- nm</span>
+        <span>Coast</span><span id="ec-coast">--.- nm</span>
+      </div>
+      <div class="ecdis-row"><span>Own SOG</span><span id="ec-sog">--.- kn</span></div>
+      <div class="ecdis-row"><span>Own COG</span><span id="ec-cog">---°</span></div>
+      <div class="ecdis-row"><span>Nearest AIS</span><span id="ec-nearest">--.- nm</span></div>
+      <button class="ecdis-mob" id="ec-mob">⊕ MOB</button>
     </div>
   </div>
 
@@ -846,13 +1093,18 @@ html, body { margin:0; height:100%; overflow:hidden;
         <button data-rud="stbd" title="Starboard (D / hold)">S ▶</button>
       </div>
 
+      <div class="ap-ctrl" id="ap-ctrl">
+        <button data-ap="track" title="Autopilot follows route">TRACK</button>
+        <button data-ap="hand" class="active" title="Manual steering">HAND</button>
+        <button data-ap="anchor" title="Drop anchor">⚓</button>
+      </div>
+
       <div class="row"><span>Steering</span><span>NFU · Follow-Up</span></div>
       <div class="row"><span>Bow thruster</span><span id="bow">OFF</span></div>
       <div class="row"><span>Propeller pitch</span><span id="pitch">100%</span></div>
     </div>
   </div>
 
-  <!-- ============ RIGHT: COMMS (VHF RADIO) ============ -->
   <div id="comms" class="panel">
     <div class="panel-title"><span>GMDSS · VHF Radio</span><span style="color:var(--led-green)">● TX/RX</span></div>
     <div class="body">
@@ -915,37 +1167,37 @@ html, body { margin:0; height:100%; overflow:hidden;
     <div class="panel">
       <div class="k">Wind</div>
       <div class="v"><b id="wind-spd">--.-</b><small>kn</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">Dir <span id="wind-dir" style="color:var(--text)">---°</span></div>
+      <div class="v sub">Dir <span id="wind-dir">---°</span> · gust <span id="wind-gust">--.-</span></div>
     </div>
     <div class="panel">
       <div class="k">Barometer</div>
       <div class="v"><b id="baro">----.-</b><small>hPa</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">Trend <span id="baro-trend" style="color:var(--led-green)">STEADY</span></div>
+      <div class="v sub">Humidity <span id="hum">--%</span></div>
     </div>
     <div class="panel">
       <div class="k">Air / Water</div>
       <div class="v"><b id="air">--.-</b><small>°C air</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">Water <span id="water" style="color:var(--text)">--.-°C</span></div>
+      <div class="v sub">Water <span id="water">--.-°C</span></div>
     </div>
     <div class="panel">
-      <div class="k">Sea state / Swell</div>
+      <div class="k">Sea / Swell</div>
       <div class="v"><b id="wave">-.-</b><small>m</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">Douglas <span id="douglas" style="color:var(--text)">3</span></div>
+      <div class="v sub">Swl <span id="swell">-.-</span> · P <span id="wave-period">-.s</span></div>
     </div>
     <div class="panel">
-      <div class="k">Visibility</div>
-      <div class="v"><b id="vis">--.-</b><small>nm</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">Humidity <span id="hum" style="color:var(--text)">--%</span></div>
+      <div class="k">Current</div>
+      <div class="v"><b id="current-spd">-.-</b><small>kn</small></div>
+      <div class="v sub">Dir <span id="current-dir">---°</span></div>
     </div>
     <div class="panel">
       <div class="k">AIS · Traffic</div>
       <div class="v"><b id="ais">--</b><small>targets</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">CPA <span id="cpa" style="color:var(--text)">--.- nm</span></div>
+      <div class="v sub">CPA <span id="cpa">--.- nm</span></div>
     </div>
     <div class="panel">
-      <div class="k">GNSS · GPS</div>
-      <div class="v"><b id="gps-sats">--</b><small>sats</small></div>
-      <div class="v" style="font-size:11px;color:var(--text-dim)">HDOP <span id="hdop" style="color:var(--led-green)">--.-</span></div>
+      <div class="k">Depth under keel</div>
+      <div class="v"><b id="depth-uk">--.-</b><small>m</small></div>
+      <div class="v sub">Coast <span id="coast-nm">--.- nm</span></div>
     </div>
   </div>
 
@@ -955,6 +1207,47 @@ html, body { margin:0; height:100%; overflow:hidden;
 </div>
 
 <script>
+/* =========================================================================
+   0. VESSEL CLASS PRESETS
+   ========================================================================= */
+window.VESSEL_CLASSES = {
+  launch: {
+    id: 'launch', name: '10 m Launch',
+    callSign: 'IBQS2', imo: '—', mmsi: '247314600',
+    lengthM: 10, maxKnots: 25, accelRate: 0.60,
+    turnPeak: 10.0, speedRef: 10, propWash: 0.55,
+    rudderMax: 35, draft: 1.2
+  },
+  fishing: {
+    id: 'fishing', name: 'FV MARIA GRAZIA',
+    callSign: 'IQLF7', imo: '—', mmsi: '247128450',
+    lengthM: 25, maxKnots: 12, accelRate: 0.35,
+    turnPeak: 6.0, speedRef: 8, propWash: 0.50,
+    rudderMax: 35, draft: 3.5
+  },
+  coaster: {
+    id: 'coaster', name: 'MV ADRIATICO',
+    callSign: 'IBCA3', imo: '9356118', mmsi: '247238900',
+    lengthM: 90, maxKnots: 14, accelRate: 0.18,
+    turnPeak: 3.2, speedRef: 10, propWash: 0.40,
+    rudderMax: 35, draft: 5.5
+  },
+  bulker: {
+    id: 'bulker', name: 'MV CAPE SUNRISE',
+    callSign: '9HA4521', imo: '9629845', mmsi: '229881000',
+    lengthM: 200, maxKnots: 14, accelRate: 0.10,
+    turnPeak: 2.0, speedRef: 12, propWash: 0.30,
+    rudderMax: 35, draft: 12
+  },
+  tanker: {
+    id: 'tanker', name: 'MT NORDIC STAR',
+    callSign: 'LAXV7', imo: '9588453', mmsi: '257123000',
+    lengthM: 330, maxKnots: 15, accelRate: 0.05,
+    turnPeak: 1.2, speedRef: 14, propWash: 0.25,
+    rudderMax: 35, draft: 22
+  }
+};
+
 /* =========================================================================
    1. MAP
    ========================================================================= */
@@ -987,10 +1280,11 @@ html, body { margin:0; height:100%; overflow:hidden;
   window.__shipMap        = map;
   window.__mapReady       = false;
   window.__hasWaterLayer  = false;
+  window.__coastGj        = null;
 
   let _coastGj, _portsGj, _itaLinesGj, _itaPolyGj, _itaPtsGj;
 
-  const ALL_LAYERS = ['coastline-line','ports-fill','ports-line','ports-point',
+  const ALL_LAYERS = ['coastline-line','coastline-shallow','ports-fill','ports-line','ports-point',
     'ita-lines-line','ita-poly-fill','ita-poly-outline','ita-points-circle'];
   const ALL_SOURCES = ['coastline','ports','ita-lines','ita-polys','ita-points'];
 
@@ -1004,6 +1298,7 @@ html, body { margin:0; height:100%; overflow:hidden;
     _itaLinesGj = await l.json();
     _itaPolyGj  = await o.json();
     _itaPtsGj   = await t.json();
+    window.__coastGj = _coastGj;
   }
 
   function addOverlays() {
@@ -1011,11 +1306,24 @@ html, body { margin:0; height:100%; overflow:hidden;
     ALL_LAYERS.forEach(id => { if (map.getLayer(id))  map.removeLayer(id); });
     ALL_SOURCES.forEach(id => { if (map.getSource(id)) map.removeSource(id); });
 
-    map.addSource('coastline', { type:'geojson', data:_coastGj });
+    /*map.addSource('coastline', { type:'geojson', data:_coastGj });
+
+    map.addLayer({
+      id: 'coastline-shallow',
+      type: 'line',
+      source: 'coastline',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': '#fbbf24',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 4, 10, 10, 14, 24, 18, 42],
+        'line-opacity': 0.18
+      }
+    });
+
     map.addLayer({ id:'coastline-line', type:'line', source:'coastline',
       paint:{ 'line-color':'#8ecbff',
         'line-width':['interpolate',['linear'],['zoom'],0,.5,4,1,8,1.6],
-        'line-opacity':.9 }});
+        'line-opacity':.9 }});*/
 
     map.addSource('ports', { type:'geojson', data:_portsGj });
     map.addLayer({ id:'ports-fill', type:'fill', source:'ports',
@@ -1057,9 +1365,6 @@ html, body { margin:0; height:100%; overflow:hidden;
     try {
       const layers = (map.getStyle().layers) || [];
       window.__hasWaterLayer = layers.some(l => (l['source-layer'] || '') === 'water');
-      if (!window.__hasWaterLayer) {
-        console.warn('[map] No "water" source-layer — placement/ground checks disabled.');
-      }
       window.__mapReady = true;
       await loadAll();
       addOverlays();
@@ -1071,16 +1376,115 @@ html, body { margin:0; height:100%; overflow:hidden;
 })();
 
 /* =========================================================================
-   2. BRIDGE UI
+   2. COAST GEOMETRY
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const LAT0 = 42.5;
+  const LON_COS = Math.cos(LAT0 * Math.PI / 180);
+
+  const features = [];
+  let ready = false;
+  let totalSegs = 0;
+
+  function addCoords(coords) {
+    if (!coords || coords.length < 2) return;
+    const segs = [];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const lon1 = coords[i][0], lat1 = coords[i][1];
+      const lon2 = coords[i+1][0], lat2 = coords[i+1][1];
+      const x1 = lon1 * LON_COS, y1 = lat1;
+      const x2 = lon2 * LON_COS, y2 = lat2;
+      segs.push([x1, y1, x2, y2]);
+      if (x1 < minX) minX = x1; if (x1 > maxX) maxX = x1;
+      if (x2 < minX) minX = x2; if (x2 > maxX) maxX = x2;
+      if (y1 < minY) minY = y1; if (y1 > maxY) maxY = y1;
+      if (y2 < minY) minY = y2; if (y2 > maxY) maxY = y2;
+    }
+    features.push({ bbox: [minX, minY, maxX, maxY], segs });
+    totalSegs += segs.length;
+  }
+
+  function processGeoJson(gj) {
+    if (!gj || !gj.features) return;
+    for (const f of gj.features) {
+      const g = f.geometry;
+      if (!g) continue;
+      if (g.type === 'LineString') addCoords(g.coordinates);
+      else if (g.type === 'MultiLineString')
+        for (const line of g.coordinates) addCoords(line);
+      else if (g.type === 'Polygon')
+        for (const ring of g.coordinates) addCoords(ring);
+      else if (g.type === 'MultiPolygon')
+        for (const poly of g.coordinates)
+          for (const ring of poly) addCoords(ring);
+    }
+    ready = true;
+    console.log('[coast] indexed ' + features.length + ' features, ' +
+                totalSegs + ' segments');
+  }
+
+  function distSegSq(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx*dx + dy*dy;
+    let t = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const cx = x1 + t * dx, cy = y1 + t * dy;
+    const ex = px - cx, ey = py - cy;
+    return ex*ex + ey*ey;
+  }
+
+  function nearestNm(lat, lon) {
+    if (!ready) return 999;
+    const px = lon * LON_COS, py = lat;
+    let bestSq = Infinity;
+    for (let i = 0; i < features.length; i++) {
+      const f = features[i];
+      const bx = Math.max(f.bbox[0] - px, 0, px - f.bbox[2]);
+      const by = Math.max(f.bbox[1] - py, 0, py - f.bbox[3]);
+      const bboxSq = bx*bx + by*by;
+      if (bboxSq >= bestSq) continue;
+      for (let j = 0; j < f.segs.length; j++) {
+        const s = f.segs[j];
+        const d = distSegSq(px, py, s[0], s[1], s[2], s[3]);
+        if (d < bestSq) bestSq = d;
+      }
+    }
+    if (bestSq === Infinity) return 999;
+    return Math.sqrt(bestSq) * 60;
+  }
+
+  let processed = false;
+  function tryProcess() {
+    if (processed) return;
+    const gj = window.__coastGj;
+    if (!gj) { setTimeout(tryProcess, 400); return; }
+    processed = true;
+    processGeoJson(gj);
+  }
+  tryProcess();
+
+  window.__coast = {
+    nearestNm,
+    isReady: () => ready,
+    segmentCount: () => totalSegs
+  };
+})();
+
+/* =========================================================================
+   3. BRIDGE UI
    ========================================================================= */
 (() => {
   'use strict';
 
   const $ = id => document.getElementById(id);
 
-  const SHIP_LENGTH_M = 10;
-  const SHIP_MIN_PX   = 14;
-  const SHIP_MAX_PX   = 220;
+  let VESSEL = window.VESSEL_CLASSES.launch;
+
+  const SHIP_MIN_PX = 14;
+  const SHIP_MAX_PX = 220;
 
   function metersPerPixel(lat, zoom) {
     return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
@@ -1090,7 +1494,7 @@ html, body { margin:0; height:100%; overflow:hidden;
     if (!window.__shipMarker || !map) return;
     const mpp = metersPerPixel(ship.lat, map.getZoom());
     const px  = Math.max(SHIP_MIN_PX,
-                Math.min(SHIP_MAX_PX, SHIP_LENGTH_M / mpp));
+                Math.min(SHIP_MAX_PX, VESSEL.lengthM / mpp));
     if (Math.abs(px - _lastMarkerPx) < 0.5) return;
     _lastMarkerPx = px;
     const el = window.__shipMarker.getElement();
@@ -1099,29 +1503,19 @@ html, body { margin:0; height:100%; overflow:hidden;
   }
 
   const TEL_MAP = {
-    'full':          'FULL AHEAD',
-    'half':          'HALF AHEAD',
-    'slow':          'SLOW AHEAD',
-    'dead-slow':     'DEAD SLOW AHEAD',
-    'stop':          'STOP',
-    'dead-slow-ast': 'DEAD SLOW AST.',
-    'slow-ast':      'SLOW ASTERN',
-    'full-ast':      'FULL ASTERN'
+    'full': 'FULL AHEAD', 'half': 'HALF AHEAD', 'slow': 'SLOW AHEAD',
+    'dead-slow': 'DEAD SLOW AHEAD', 'stop': 'STOP',
+    'dead-slow-ast': 'DEAD SLOW AST.', 'slow-ast': 'SLOW ASTERN',
+    'full-ast': 'FULL ASTERN'
   };
   const TEL_RPM = {
-    'FULL AHEAD':      100,
-    'HALF AHEAD':       70,
-    'SLOW AHEAD':       40,
-    'DEAD SLOW AHEAD':  15,
-    'STOP':              0,
-    'DEAD SLOW AST.':  -15,
-    'SLOW ASTERN':     -40,
-    'FULL ASTERN':     -70
+    'FULL AHEAD': 100, 'HALF AHEAD': 70, 'SLOW AHEAD': 40,
+    'DEAD SLOW AHEAD': 15, 'STOP': 0, 'DEAD SLOW AST.': -15,
+    'SLOW ASTERN': -40, 'FULL ASTERN': -70
   };
   const TEL_ORDER = [
     'FULL AHEAD', 'HALF AHEAD', 'SLOW AHEAD', 'DEAD SLOW AHEAD',
-    'STOP',
-    'DEAD SLOW AST.', 'SLOW ASTERN', 'FULL ASTERN'
+    'STOP', 'DEAD SLOW AST.', 'SLOW ASTERN', 'FULL ASTERN'
   ];
 
   const ship = {
@@ -1131,28 +1525,27 @@ html, body { margin:0; height:100%; overflow:hidden;
     rpm: 0, rpmTarget: 0, rpmPct: 0,
     engineOn: false,
     depth: 42.3,
-    windDir: 245, windSpd: 18.3,
-    baro: 1014.2, baroTrend: 0,
+    windSpd: 18, windDir: 245, windGust: 22,
+    baro: 1014, baroTrend: 0,
     air: 18.4, water: 16.8,
-    wave: 1.4, douglas: 3,
+    wave: 1.4, douglas: 3, swell: 0.9, wavePeriod: 6.5,
+    currentSpd: 0, currentDir: 0,
     vis: 8.5, humidity: 72,
     fuel: 78, mdo: 91, fw: 64, ballast: 42,
     fuelRate: 0, fuelTemp: 42,
     oilPress: 0, coolant: 42, egt: 42, turbo: 0,
-    runHours: 34281.4,
-    shaftPw: 0,
-    ais: 27, cpa: 3.4,
+    runHours: 34281.4, shaftPw: 0,
+    ais: 0, cpa: 999,
     gpsSats: 14, hdop: 0.8,
     autopilot: 'MANUAL', bow: 'OFF', pitch: 100,
-    telegraph: 'STOP',
-    status: 'STOPPED'
+    telegraph: 'STOP', status: 'STOPPED',
+    name: 'MV NEPTUNE STAR', callSign: 'IBQS2',
+    coastNm: 999
   };
 
-  let started      = false;
-  let gameOver     = false;
-  let graceEnd     = 0;
-  let followShip   = true;
-  let transitioning = false;
+  let started = false, gameOver = false, graceEnd = 0;
+  let followShip = true, transitioning = false;
+  let landFrames = 0;
 
   const CAM_PITCH = 45;
 
@@ -1166,11 +1559,7 @@ html, body { margin:0; height:100%; overflow:hidden;
         el.textContent = labels[a] || a;
         el.style.color = (a === 0) ? 'var(--led-red)' : 'var(--text)';
         el.style.fontWeight = '600';
-      } else if (a % 10 === 0) {
-        el.textContent = '·';
-      } else {
-        el.textContent = '';
-      }
+      } else if (a % 10 === 0) { el.textContent = '·'; }
       rose.appendChild(el);
     }
   })();
@@ -1234,9 +1623,9 @@ html, body { margin:0; height:100%; overflow:hidden;
 
   const rudBtns = document.querySelectorAll('#rudder-ctrl button');
   let rudInterval = null;
-
   function setRudder(delta) {
-    ship.rudder = Math.max(-35, Math.min(35, ship.rudder + delta));
+    ship.rudder = Math.max(-VESSEL.rudderMax,
+                  Math.min(VESSEL.rudderMax, ship.rudder + delta));
   }
   function startRudMove(dir) {
     if (gameOver) return;
@@ -1251,17 +1640,16 @@ html, body { margin:0; height:100%; overflow:hidden;
     if (rudInterval) { clearInterval(rudInterval); rudInterval = null; }
     document.querySelectorAll('#rudder-ctrl button').forEach(b => b.classList.remove('active'));
   }
-
   rudBtns.forEach(btn => {
     const d = btn.dataset.rud;
     if (d === 'center') {
       btn.addEventListener('click', () => { if (!gameOver) ship.rudder = 0; });
     } else {
-      btn.addEventListener('mousedown', (e) => { e.preventDefault(); startRudMove(d); });
-      btn.addEventListener('mouseup',   stopRudMove);
+      btn.addEventListener('mousedown', e => { e.preventDefault(); startRudMove(d); });
+      btn.addEventListener('mouseup', stopRudMove);
       btn.addEventListener('mouseleave', stopRudMove);
-      btn.addEventListener('touchstart', (e) => { e.preventDefault(); startRudMove(d); }, { passive:false });
-      btn.addEventListener('touchend',   stopRudMove);
+      btn.addEventListener('touchstart', e => { e.preventDefault(); startRudMove(d); }, { passive:false });
+      btn.addEventListener('touchend', stopRudMove);
       btn.addEventListener('touchcancel', stopRudMove);
     }
   });
@@ -1282,26 +1670,21 @@ html, body { margin:0; height:100%; overflow:hidden;
     const m = (a - d) * 60;
     return `${pad2(d)}°${m.toFixed(1).padStart(4,'0')}′${h}`;
   };
+  window.__fmtLat = fmtLat;
+  window.__fmtLon = fmtLon;
   const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+  window.__clamp = clamp;
   function lerpAngle(a, b, t) {
     let d = b - a;
     while (d > 180) d -= 360;
     while (d < -180) d += 360;
     return a + d * t;
   }
+  window.__lerpAngle = lerpAngle;
 
-  function isOverWater(lng, lat) {
-    const map = window.__shipMap;
-    if (!map || !window.__mapReady || !window.__hasWaterLayer) return true;
-    const p = map.project([lng, lat]);
-    const feats = map.queryRenderedFeatures([[p.x, p.y], [p.x, p.y]]);
-    return feats.some(f => {
-      const sl = (f.sourceLayer || '').toLowerCase();
-      const id = (f.layer && f.layer.id ? f.layer.id : '').toLowerCase();
-      const isWaterLayer = sl === 'water' || id.includes('water');
-      const isPoly = !!(f.geometry && /Polygon/.test(f.geometry.type));
-      return isWaterLayer && isPoly;
-    });
+  function groundingRadiusNm() {
+    const hullNm = (VESSEL.lengthM / 2) / 1852;
+    return Math.max(0.03, hullNm + 0.015);
   }
 
   function triggerGrounding() {
@@ -1319,6 +1702,8 @@ html, body { margin:0; height:100%; overflow:hidden;
       el.style.color = 'var(--led-red)';
       el.style.filter = 'drop-shadow(0 0 10px rgba(255,85,102,.8))';
     }
+    window.__radioLog && window.__radioLog('dsc',
+      `◉ GROUNDING — ${window.__fmtLat(ship.lat)} ${window.__fmtLon(ship.lon)}`);
   }
 
   document.getElementById('crash-restart').addEventListener('click', () => {
@@ -1326,15 +1711,12 @@ html, body { margin:0; height:100%; overflow:hidden;
   });
 
   const keys = Object.create(null);
-
   window.addEventListener('keydown', (e) => {
     if (!started) return;
     const k = e.key;
     const lk = k.length === 1 ? k.toLowerCase() : k;
-
     if (lk === 'h') { $('bridge').classList.toggle('hidden'); e.preventDefault(); return; }
     if (gameOver) return;
-
     if (lk === 'r') { toggleEngine(); e.preventDefault(); return; }
     if (lk === 'c') { followShip = !followShip; updateFollowBadge(); e.preventDefault(); return; }
     if (lk === 'w') { if (!keys['w']) { keys['w'] = true; stepTelegraph(-1); } e.preventDefault(); return; }
@@ -1349,7 +1731,6 @@ html, body { margin:0; height:100%; overflow:hidden;
     }
     if (k === ' ' || k === 'Spacebar') { ship.rudder = 0; e.preventDefault(); return; }
   });
-
   window.addEventListener('keyup', (e) => {
     const k = e.key;
     const lk = k.length === 1 ? k.toLowerCase() : k;
@@ -1360,7 +1741,6 @@ html, body { margin:0; height:100%; overflow:hidden;
   });
 
   const map = window.__shipMap;
-
   map.on('dragstart',    () => { followShip = false; updateFollowBadge(); });
   map.on('rotatestart',  (e) => { if (e.originalEvent) { followShip = false; updateFollowBadge(); } });
   map.on('pitchstart',   (e) => { if (e.originalEvent) { followShip = false; updateFollowBadge(); } });
@@ -1377,47 +1757,74 @@ html, body { margin:0; height:100%; overflow:hidden;
       duration: 850,
       essential: true
     });
-    setTimeout(() => {
-      transitioning = false;
-      followShip = true;
-      updateFollowBadge();
-    }, 900);
+    setTimeout(() => { transitioning = false; followShip = true; updateFollowBadge(); }, 900);
   });
 
   let last = performance.now();
+  let lastCoastCheck = 0;
+
   function tick(now) {
     const dt = Math.min((now - last) / 1000, 0.5);
     last = now;
-
     if (!started) { requestAnimationFrame(tick); return; }
 
     const t = now / 1000;
+    const wx = window.__weather;
+
+    // Autopilot control (if engaged)
+    const voyage = window.__voyage;
+    if (!gameOver && voyage && voyage.autopilot === 'track' && !voyage.anchored) {
+      const target = voyage.destination;
+      if (target) {
+        const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+        const dLat = (target.lat - ship.lat) * D2R;
+        const dLon = (target.lon - ship.lon) * D2R;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(ship.lat*D2R) * Math.cos(target.lat*D2R) * Math.sin(dLon/2)**2;
+        const dist = 2 * 3440.065 * Math.asin(Math.min(1, Math.sqrt(a)));
+        const y = Math.sin(dLon) * Math.cos(target.lat * D2R);
+        const x = Math.cos(ship.lat*D2R) * Math.sin(target.lat*D2R) -
+                  Math.sin(ship.lat*D2R) * Math.cos(target.lat*D2R) * Math.cos(dLon);
+        const desired = (Math.atan2(y, x) * R2D + 360) % 360;
+        let err = ((desired - ship.heading + 540) % 360) - 180;
+        ship.rudder = Math.max(-25, Math.min(25, err * 0.8));
+
+        if (ship.engineOn) {
+          let tel = 'STOP';
+          if (dist > 20)      tel = 'FULL AHEAD';
+          else if (dist > 8)  tel = 'HALF AHEAD';
+          else if (dist > 3)  tel = 'SLOW AHEAD';
+          else if (dist > 1)  tel = 'DEAD SLOW AHEAD';
+          if (ship.telegraph !== tel) {
+            ship.telegraph = tel;
+            ship.rpmTarget = TEL_RPM[tel];
+          }
+        }
+      }
+    }
 
     if (!gameOver) {
-      // Engine
       const target = ship.engineOn ? (TEL_RPM[ship.telegraph] || 0) : 0;
       ship.rpmTarget = target;
       ship.rpm += (target - ship.rpm) * Math.min(1, dt * 0.55);
       if (Math.abs(ship.rpm) < 0.05) ship.rpm = 0;
       ship.rpmPct = ship.rpm;
 
-      // Speed
-      const targetSog = ship.rpm * 0.25;
-      ship.sog += (targetSog - ship.sog) * Math.min(1, dt * 0.60);
+      const wavePenalty = wx ? Math.min(0.35, wx.wave * 0.06) : 0;
+      const targetSog   = (ship.rpm / 100) * VESSEL.maxKnots * (1 - wavePenalty);
+      ship.sog += (targetSog - ship.sog) * Math.min(1, dt * VESSEL.accelRate);
       if (Math.abs(ship.sog) < 0.03 && Math.abs(targetSog) < 0.03) ship.sog = 0;
 
-      // Steering
-      const speedFactor   = Math.min(Math.abs(ship.sog) / 10, 1.4);
+      const speedFactor   = Math.min(Math.abs(ship.sog) / VESSEL.speedRef, 1.4);
       const propWash      = ship.engineOn
-        ? Math.min(Math.abs(ship.rpm) / 60, 1) * 0.55
-        : 0;
+        ? Math.min(Math.abs(ship.rpm) / 60, 1) * VESSEL.propWash : 0;
       const effectiveFlow = Math.max(speedFactor, propWash);
-      const rudderFactor  = ship.rudder / 35;
-      const turnRate = rudderFactor * Math.sqrt(effectiveFlow) * 10.0;
+      const rudderFactor  = ship.rudder / VESSEL.rudderMax;
+      const turnRate = rudderFactor * Math.sqrt(effectiveFlow) * VESSEL.turnPeak;
 
       ship.rot     = turnRate * 60;
       ship.heading = (ship.heading + turnRate * dt + 360) % 360;
-      ship.stw     = Math.abs(ship.sog) + 0.05 * Math.abs(ship.rudder) / 35;
+      ship.stw     = Math.abs(ship.sog) + 0.05 * Math.abs(ship.rudder) / VESSEL.rudderMax;
 
       const distNm  = ship.sog * dt / 3600;
       const distDeg = distNm / 60;
@@ -1425,8 +1832,36 @@ html, body { margin:0; height:100%; overflow:hidden;
       ship.lat += distDeg * Math.cos(rad);
       ship.lon += distDeg * Math.sin(rad) / Math.cos(ship.lat * Math.PI / 180);
 
-      if (performance.now() > graceEnd && Math.abs(ship.sog) > 0.05) {
-        if (!isOverWater(ship.lon, ship.lat)) triggerGrounding();
+      if (wx && wx.currentSpd > 0.01) {
+        const curRad = wx.currentDir * Math.PI / 180;
+        const curDistNm = wx.currentSpd * dt / 3600;
+        const curDistDeg = curDistNm / 60;
+        ship.lat += curDistDeg * Math.cos(curRad);
+        ship.lon += curDistDeg * Math.sin(curRad) / Math.cos(ship.lat * Math.PI / 180);
+      }
+
+      if (wx && wx.windSpd > 0.5) {
+        const rel = ((wx.windDir - ship.heading + 540) % 360) - 180;
+        const relRad = rel * Math.PI / 180;
+        const leeway = wx.windSpd * 0.015 * Math.abs(Math.sin(relRad));
+        const dwRad = ((wx.windDir + 180) % 360) * Math.PI / 180;
+        const lwNm = leeway * dt / 3600;
+        const lwDeg = lwNm / 60;
+        ship.lat += lwDeg * Math.cos(dwRad);
+        ship.lon += lwDeg * Math.sin(dwRad) / Math.cos(ship.lat * Math.PI / 180);
+      }
+
+      if (now - lastCoastCheck > 250 && window.__coast && window.__coast.isReady()) {
+        lastCoastCheck = now;
+        ship.coastNm = window.__coast.nearestNm(ship.lat, ship.lon);
+
+        const r = groundingRadiusNm();
+        if (performance.now() > graceEnd && ship.coastNm < r) {
+          landFrames++;
+          if (landFrames >= 3) triggerGrounding();
+        } else if (ship.coastNm > r + 0.01) {
+          landFrames = Math.max(0, landFrames - 1);
+        }
       }
     } else {
       ship.sog *= Math.pow(0.35, dt); if (Math.abs(ship.sog) < 0.02) ship.sog = 0;
@@ -1436,23 +1871,51 @@ html, body { margin:0; height:100%; overflow:hidden;
 
     ship.cog = (ship.heading + (ship.sog < 0 ? 180 : 0) + 360) % 360;
 
-    ship.windSpd    = 18 + Math.sin(t / 23) * 2.2;
-    ship.windDir    = (245 + Math.sin(t / 41) * 8 + 360) % 360;
-    ship.depth      = 42 + Math.sin(t / 19) * 6;
-    ship.wave       = 1.4 + Math.sin(t / 31) * 0.3;
-    ship.baro       = 1014 + Math.sin(t / 47) * 1.2;
-    ship.air        = 18.4 + Math.sin(t / 53) * 0.6;
-    ship.water      = 16.8 + Math.sin(t / 61) * 0.3;
-    ship.vis        = 8.5 + Math.sin(t / 67) * 0.8;
-    ship.humidity   = 72 + Math.sin(t / 71) * 4;
-    ship.cpa        = 3.4 + Math.sin(t / 43) * 1.5;
-    ship.ais        = Math.round(27 + Math.sin(t / 17) * 3);
-    ship.gpsSats    = Math.round(14 + Math.sin(t / 29) * 1.5);
-    ship.hdop       = 0.8 + Math.sin(t / 37) * 0.15;
+    if (wx) {
+      const wL = Math.min(1, dt * 0.5);
+      ship.windSpd  += (wx.windSpd  - ship.windSpd)  * wL;
+      ship.windDir   = lerpAngle(ship.windDir, wx.windDir, wL);
+      ship.windGust += ((wx.windGust || wx.windSpd * 1.2) - ship.windGust) * wL;
+      ship.wave     += (wx.wave     - ship.wave)     * wL;
+      ship.swell    += (wx.swell    - ship.swell)    * wL;
+      ship.wavePeriod += ((wx.wavePeriod || 6) - ship.wavePeriod) * wL;
+      ship.currentSpd += (wx.currentSpd - ship.currentSpd) * wL;
+      ship.currentDir  = lerpAngle(ship.currentDir, wx.currentDir, wL);
+      ship.baro     += (wx.baro     - ship.baro)     * wL;
+      ship.air      += (wx.air      - ship.air)      * wL;
+      ship.water    += (wx.water    - ship.water)    * wL;
+      ship.humidity += (wx.humidity - ship.humidity) * wL;
+    }
+
+    const dougFromWave = (h) => {
+      if (h < 0.1) return 0; if (h < 0.5) return 1;
+      if (h < 1.25) return 2; if (h < 2.5) return 3;
+      if (h < 4) return 4; if (h < 6) return 5;
+      if (h < 9) return 6; if (h < 14) return 7; return 8;
+    };
+    ship.douglas = dougFromWave(ship.wave);
+
+    const syntheticDepth = Math.min(200, 4 + ship.coastNm * 10 + Math.sin(t/7) * 0.5);
+    ship.depth = Math.max(1, syntheticDepth - VESSEL.draft);
+
+    ship.gpsSats = Math.round(14 + Math.sin(t / 29) * 1.5);
+    ship.hdop    = 0.8 + Math.sin(t / 37) * 0.15;
+    ship.vis     = 8.5 + Math.sin(t / 67) * 0.8;
+
+    const traffic = window.__traffic;
+    if (traffic) {
+      let nearest = 999;
+      for (const s of traffic.ships) {
+        const d = traffic.distanceNm(ship.lat, ship.lon, s.lat, s.lon);
+        if (d < nearest) nearest = d;
+      }
+      ship.cpa = nearest;
+      ship.ais = traffic.ships.length;
+    }
 
     const rpmN = Math.abs(ship.rpm);
-    ship.shaftPw  = rpmN * 53;
-    ship.fuelRate = rpmN * 4.4;
+    ship.shaftPw  = rpmN * 53 * (VESSEL.lengthM / 10);
+    ship.fuelRate = rpmN * 4.4 * (VESSEL.lengthM / 10);
     ship.egt      = 42 + rpmN * 4.3;
     ship.turbo    = rpmN * 0.16;
     ship.oilPress = rpmN > 1 ? 1.5 + rpmN * 0.035 : 0;
@@ -1460,16 +1923,32 @@ html, body { margin:0; height:100%; overflow:hidden;
     ship.runHours += ship.engineOn ? dt / 3600 : 0;
 
     if (ship.engineOn) {
-      ship.fuel = clamp(ship.fuel - dt * 0.0008 * (rpmN/80 + 0.2), 0, 100);
-      ship.mdo  = clamp(ship.mdo  - dt * 0.0002 * (rpmN/80 + 0.2), 0, 100);
+      ship.fuel = clamp(ship.fuel - dt * 0.0008 * (rpmN/80 + 0.2) * (VESSEL.lengthM/10), 0, 100);
+      ship.mdo  = clamp(ship.mdo  - dt * 0.0002 * (rpmN/80 + 0.2) * (VESSEL.lengthM/10), 0, 100);
     }
     ship.fw = clamp(ship.fw - dt * 0.0003, 0, 100);
 
-    // --- DOM updates ---
+    const hud = $('shallow-hud');
+    if (!gameOver && ship.coastNm < 1.0 && ship.coastNm < 900) {
+      hud.classList.add('on');
+      if (ship.coastNm < 0.2) {
+        hud.className = 'danger on';
+        $('shallow-text').textContent = '⚠ DANGER · SHALLOW WATER ⚠';
+        $('shallow-sub').textContent = `Coast ${(ship.coastNm).toFixed(2)} nm · reduce speed`;
+      } else {
+        hud.className = 'warn on';
+        $('shallow-text').textContent = 'SHALLOW WATER AHEAD';
+        $('shallow-sub').textContent = `Coast ${ship.coastNm.toFixed(2)} nm · navigate with caution`;
+      }
+    } else {
+      hud.classList.remove('on');
+    }
+
     $('pos-pill').textContent = fmtLat(ship.lat) + ' ' + fmtLon(ship.lon);
 
     const statusPill = $('status-pill');
     if (gameOver) { ship.status = 'AGROUND'; statusPill.className = 'pill dead'; }
+    else if (voyage && voyage.anchored) { ship.status = 'ANCHORED'; statusPill.className = 'pill idle'; }
     else if (ship.engineOn && Math.abs(ship.sog) > 0.2) { ship.status = 'UNDERWAY'; statusPill.className = 'pill live'; }
     else if (ship.engineOn) { ship.status = 'MANEUVERING'; statusPill.className = 'pill idle'; }
     else { ship.status = 'STOPPED'; statusPill.className = 'pill idle'; }
@@ -1510,27 +1989,31 @@ html, body { margin:0; height:100%; overflow:hidden;
     $('ap').textContent = ship.autopilot;
 
     $('rudder-arc').style.transform =
-      `translateX(-50%) rotate(${clamp(ship.rudder,-35,35)}deg)`;
+      `translateX(-50%) rotate(${clamp(ship.rudder,-VESSEL.rudderMax,VESSEL.rudderMax)}deg)`;
     $('rudder-val').textContent = (ship.rudder >= 0 ? 'S ' : 'P ') +
       Math.abs(ship.rudder).toFixed(1) + '°';
     $('bow').textContent = ship.bow;
     $('pitch').textContent = ship.pitch + '%';
 
-    // NOTE: VHF panel is now driven entirely by the radio module (section 5).
-
-    $('wind-spd').textContent = ship.windSpd.toFixed(1);
-    $('wind-dir').textContent = String(Math.round(ship.windDir)).padStart(3,'0') + '°';
-    $('baro').textContent = ship.baro.toFixed(1);
-    $('air').textContent = ship.air.toFixed(1);
-    $('water').textContent = ship.water.toFixed(1) + '°C';
-    $('wave').textContent = ship.wave.toFixed(1);
-    $('douglas').textContent = ship.douglas;
-    $('vis').textContent = ship.vis.toFixed(1);
-    $('hum').textContent = ship.humidity.toFixed(0) + '%';
-    $('ais').textContent = ship.ais;
-    $('cpa').textContent = ship.cpa.toFixed(1) + ' nm';
-    $('gps-sats').textContent = ship.gpsSats;
-    $('hdop').textContent = ship.hdop.toFixed(1);
+    const jSpd = Math.sin(t / 3.1) * 0.15;
+    const jDir = Math.sin(t / 4.7) * 2.5;
+    $('wind-spd').textContent  = (ship.windSpd + jSpd).toFixed(1);
+    $('wind-dir').textContent  = String(Math.round((ship.windDir + jDir + 360) % 360)).padStart(3,'0') + '°';
+    $('wind-gust').textContent = ship.windGust.toFixed(1);
+    $('baro').textContent      = ship.baro.toFixed(1);
+    $('hum').textContent       = ship.humidity.toFixed(0) + '%';
+    $('air').textContent       = ship.air.toFixed(1);
+    $('water').textContent     = ship.water.toFixed(1) + '°C';
+    $('wave').textContent      = ship.wave.toFixed(1);
+    $('swell').textContent     = ship.swell.toFixed(1);
+    $('wave-period').textContent = ship.wavePeriod.toFixed(0) + 's';
+    $('current-spd').textContent = ship.currentSpd.toFixed(2);
+    $('current-dir').textContent = String(Math.round(ship.currentDir)).padStart(3,'0') + '°';
+    $('ais').textContent       = ship.ais;
+    $('cpa').textContent       = ship.cpa < 900 ? ship.cpa.toFixed(1) + ' nm' : '—';
+    $('depth-uk').textContent  = ship.depth.toFixed(1);
+    $('coast-nm').textContent  = ship.coastNm < 900 ? ship.coastNm.toFixed(2) + ' nm' : '—';
+    $('coast-info').textContent = ship.coastNm < 900 ? ship.coastNm.toFixed(2) + ' nm' : '—';
 
     const now2 = new Date();
     const utc = `${pad2(now2.getUTCHours())}:${pad2(now2.getUTCMinutes())}:${pad2(now2.getUTCSeconds())}`;
@@ -1549,26 +2032,32 @@ html, body { margin:0; height:100%; overflow:hidden;
     if (map && followShip && !transitioning) {
       const curB = map.getBearing();
       const newB = lerpAngle(curB, ship.heading, Math.min(1, dt * 4));
-      map.jumpTo({
-        center: [ship.lon, ship.lat],
-        bearing: newB
-      });
+      map.jumpTo({ center: [ship.lon, ship.lat], bearing: newB });
     }
 
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 
-  window.__beginGame = (spawn) => {
+  window.__beginGame = (spawn, vesselClassId) => {
     if (!spawn) return;
+    VESSEL = window.VESSEL_CLASSES[vesselClassId] || window.VESSEL_CLASSES.launch;
+    window.__vessel = VESSEL;
+
+    ship.name = VESSEL.name;
+    ship.callSign = VESSEL.callSign;
     ship.lon = spawn.lon;
     ship.lat = spawn.lat;
     if (typeof spawn.heading === 'number') ship.heading = spawn.heading;
     ship.cog = ship.heading;
 
+    $('vessel-name').textContent = VESSEL.name;
+    $('vessel-sub').textContent =
+      `IMO ${VESSEL.imo} · MMSI ${VESSEL.mmsi} · CALL ${VESSEL.callSign}`;
+
     started  = true;
     last     = performance.now();
-    graceEnd = performance.now() + 2500;
+    graceEnd = performance.now() + 3000;
     followShip = true;
     updateFollowBadge();
     updateEngineButton();
@@ -1586,16 +2075,16 @@ html, body { margin:0; height:100%; overflow:hidden;
     _lastMarkerPx = 0;
     updateMarkerSize(map);
 
-    // Let the VHF radio module know the game has begun.
     window.dispatchEvent(new CustomEvent('bridge:started'));
   };
 
   window.__isGameStarted = () => started;
   window.__ship = ship;
+  window.__getVessel = () => VESSEL;
 })();
 
 /* =========================================================================
-   3. START MENU
+   4. START MENU
    ========================================================================= */
 (() => {
   'use strict';
@@ -1618,8 +2107,15 @@ html, body { margin:0; height:100%; overflow:hidden;
             stroke-linejoin="round"/>
     </svg>`;
 
-  let selected    = null;
-  let gameStarted = false;
+  let selected = null, gameStarted = false, chosenClass = 'launch';
+
+  document.querySelectorAll('.vessel-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vessel-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      chosenClass = btn.dataset.class;
+    });
+  });
 
   const ghostEl = document.createElement('div');
   ghostEl.className = 'ship-marker ghost';
@@ -1656,20 +2152,31 @@ html, body { margin:0; height:100%; overflow:hidden;
     }
   }
 
-  function isWater(lngLat) {
-    if (!window.__mapReady) return null;
-    if (!window.__hasWaterLayer) return true;
-    const p = map.project(lngLat);
-    const feats = map.queryRenderedFeatures(
-      [[p.x - 1, p.y - 1], [p.x + 1, p.y + 1]]
-    );
-    return feats.some(f => {
-      const sl = (f.sourceLayer || '').toLowerCase();
-      const id = (f.layer && f.layer.id ? f.layer.id : '').toLowerCase();
-      const isWaterLayer = sl === 'water' || id.includes('water');
-      const isPoly = !!(f.geometry && /Polygon/.test(f.geometry.type));
-      return isWaterLayer && isPoly;
-    });
+  function pointIsWater(lon, lat) {
+    try {
+      const p = map.project([lon, lat]);
+      const feats = map.queryRenderedFeatures(
+        [[p.x - 1.5, p.y - 1.5], [p.x + 1.5, p.y + 1.5]]
+      );
+      if (!feats.length) return null;
+      for (const f of feats) {
+        const lid = (f.layer && f.layer.id ? f.layer.id : '').toLowerCase();
+        const sl  = (f.sourceLayer || '').toLowerCase();
+        const isWater = lid.includes('water') || sl === 'water' || sl.includes('water');
+        const isPoly = f.geometry && /Polygon/.test(f.geometry.type);
+        if (isWater && isPoly) return true;
+      }
+      return false;
+    } catch (e) { return null; }
+  }
+
+  function isSafeStartPos(lngLat) {
+    if (!map.isStyleLoaded()) return false;
+
+    // Water polygon test — water is allowed, land is not.
+    const w = pointIsWater(lngLat.lng, lngLat.lat);
+    return w === true;
+
   }
 
   function whenReady(fn) {
@@ -1684,8 +2191,7 @@ html, body { margin:0; height:100%; overflow:hidden;
 
   const onMove = (e) => {
     if (!window.__mapReady || gameStarted) return;
-    const ok = isWater(e.lngLat);
-    if (ok === null) return;
+    const ok = isSafeStartPos(e.lngLat);
     ghost.setLngLat(e.lngLat);
     if (!ghostOnMap) { ghost.addTo(map); ghostOnMap = true; }
     ghostEl.classList.toggle('ok',  ok);
@@ -1698,9 +2204,10 @@ html, body { margin:0; height:100%; overflow:hidden;
   };
   const onClick = (e) => {
     if (!window.__mapReady || gameStarted) return;
-    const ok = isWater(e.lngLat);
-    if (ok === null) return;
-    if (!ok) { setStatus('bad', '✕  Invalid position — land or shallow water.'); return; }
+    if (!isSafeStartPos(e.lngLat)) {
+      setStatus('bad', '✕  Too close to shore — pick further offshore.');
+      return;
+    }
     selected = { lng: e.lngLat.lng, lat: e.lngLat.lat };
     spawnMarker.setLngLat([selected.lng, selected.lat]);
     if (!spawnOnMap) { spawnMarker.addTo(map); spawnOnMap = true; }
@@ -1726,7 +2233,7 @@ html, body { margin:0; height:100%; overflow:hidden;
     map.off('click',     onClick);
     menu.classList.add('hidden');
     $('bridge').classList.remove('hidden');
-    window.__beginGame({ lon: selected.lng, lat: selected.lat, heading: 90 });
+    window.__beginGame({ lon: selected.lng, lat: selected.lat, heading: 90 }, chosenClass);
   }
 
   startBtn.addEventListener('click', startVoyage);
@@ -1736,7 +2243,7 @@ html, body { margin:0; height:100%; overflow:hidden;
 })();
 
 /* =========================================================================
-   4. CHART TOOLS
+   5. CHART TOOLS
    ========================================================================= */
 (() => {
   'use strict';
@@ -1745,48 +2252,50 @@ html, body { margin:0; height:100%; overflow:hidden;
   const map = window.__shipMap;
 
   const OPENSEAMAP_TILES = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
-  let nauticalOn   = false;
-  let openseamapAdded = false;
+  let nauticalOn = false, openseamapAdded = false;
 
   function addNauticalSource() {
     if (openseamapAdded) return;
     map.addSource('openseamap', {
-      type: 'raster',
-      tiles: [OPENSEAMAP_TILES],
-      tileSize: 256,
+      type: 'raster', tiles: [OPENSEAMAP_TILES], tileSize: 256,
       attribution: '© OpenSeaMap contributors'
     });
     map.addLayer({
-      id: 'openseamap-layer',
-      type: 'raster',
-      source: 'openseamap',
+      id: 'openseamap-layer', type: 'raster', source: 'openseamap',
       paint: { 'raster-opacity': 1.0 }
     });
     openseamapAdded = true;
   }
-
   function toggleNautical() {
     if (!openseamapAdded) addNauticalSource();
     nauticalOn = !nauticalOn;
-    map.setLayoutProperty(
-      'openseamap-layer',
-      'visibility',
-      nauticalOn ? 'visible' : 'none'
-    );
+    map.setLayoutProperty('openseamap-layer', 'visibility',
+      nauticalOn ? 'visible' : 'none');
     const btn = $('t-nautical');
     btn.classList.toggle('active', nauticalOn);
     btn.querySelector('span:last-child').textContent =
       nauticalOn ? 'Nautical: ON' : 'Nautical chart';
   }
-
   $('t-nautical').addEventListener('click', () => {
     if (!window.__isGameStarted()) return;
     toggleNautical();
   });
 
+  let shallowOn = true;
+  $('t-shallow').addEventListener('click', () => {
+    if (!window.__isGameStarted()) return;
+    shallowOn = !shallowOn;
+    $('t-shallow').classList.toggle('active', shallowOn);
+    $('t-shallow').querySelector('span:last-child').textContent =
+      shallowOn ? 'Shallow zones' : 'Shallow: OFF';
+    if (map.getLayer('coastline-shallow')) {
+      map.setLayoutProperty('coastline-shallow', 'visibility',
+        shallowOn ? 'visible' : 'none');
+    }
+  });
+
   const waypoints = [];
-  let waypointModeOn = false;
-  let waypointClickHandler = null;
+  let waypointModeOn = false, waypointClickHandler = null;
 
   function haversineNm(lat1, lon1, lat2, lon2) {
     const R = 3440.065;
@@ -1797,64 +2306,46 @@ html, body { margin:0; height:100%; overflow:hidden;
               Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
     return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
   }
+  window.__haversineNm = haversineNm;
 
   function refreshRouteLine() {
     const coords = waypoints.map(w => [w.lng, w.lat]);
-    const data = {
-      type: 'Feature',
-      properties: {},
-      geometry: { type: 'LineString', coordinates: coords }
-    };
+    const data = { type: 'Feature', properties: {},
+      geometry: { type: 'LineString', coordinates: coords } };
     if (map.getSource('route-line')) {
       map.getSource('route-line').setData(data);
     } else {
       map.addSource('route-line', { type: 'geojson', data });
       map.addLayer({
-        id: 'route-line',
-        type: 'line',
-        source: 'route-line',
+        id: 'route-line', type: 'line', source: 'route-line',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': '#4fd6ff',
-          'line-width': 2,
-          'line-dasharray': [2, 2],
-          'line-opacity': 0.9
-        }
+        paint: { 'line-color': '#4fd6ff', 'line-width': 2,
+          'line-dasharray': [2, 2], 'line-opacity': 0.9 }
       });
     }
   }
-
   function updateWpInfo() {
     $('wp-count').textContent = waypoints.length;
     let total = 0;
     for (let i = 1; i < waypoints.length; i++) {
-      total += haversineNm(
-        waypoints[i-1].lat, waypoints[i-1].lng,
-        waypoints[i].lat,   waypoints[i].lng
-      );
+      total += haversineNm(waypoints[i-1].lat, waypoints[i-1].lng,
+                            waypoints[i].lat, waypoints[i].lng);
     }
     $('wp-dist').textContent = total.toFixed(1) + ' nm';
   }
-
   function addWaypoint(lngLat) {
     const idx = waypoints.length;
     const el = document.createElement('div');
     el.className = 'waypoint-marker';
     el.textContent = String(idx + 1);
     el.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      removeWaypoint(idx);
+      e.preventDefault(); e.stopPropagation(); removeWaypoint(idx);
     });
-    const marker = new maplibregl.Marker({
-      element: el,
-      anchor: 'center'
-    }).setLngLat([lngLat.lng, lngLat.lat]).addTo(map);
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lngLat.lng, lngLat.lat]).addTo(map);
     waypoints.push({ lng: lngLat.lng, lat: lngLat.lat, marker });
-    refreshRouteLine();
-    updateWpInfo();
+    refreshRouteLine(); updateWpInfo();
   }
-
   function removeWaypoint(index) {
     if (index < 0 || index >= waypoints.length) return;
     waypoints[index].marker.remove();
@@ -1862,24 +2353,19 @@ html, body { margin:0; height:100%; overflow:hidden;
     waypoints.forEach((wp, i) => {
       wp.marker.getElement().textContent = String(i + 1);
     });
-    refreshRouteLine();
-    updateWpInfo();
+    refreshRouteLine(); updateWpInfo();
   }
-
   function clearWaypoints() {
     waypoints.forEach(wp => wp.marker.remove());
     waypoints.length = 0;
-    refreshRouteLine();
-    updateWpInfo();
+    refreshRouteLine(); updateWpInfo();
   }
-
   function setWaypointMode(on) {
     waypointModeOn = on;
     const btn = $('t-waypoint');
     btn.classList.toggle('active', on);
     btn.querySelector('span:last-child').textContent =
       on ? 'Waypoint: ON' : 'Waypoint mode';
-
     if (on) {
       if (!waypointClickHandler) {
         waypointClickHandler = (e) => {
@@ -1896,12 +2382,10 @@ html, body { margin:0; height:100%; overflow:hidden;
       map.getCanvas().style.cursor = '';
     }
   }
-
   $('t-waypoint').addEventListener('click', () => {
     if (!window.__isGameStarted()) return;
     setWaypointMode(!waypointModeOn);
   });
-
   $('t-clear').addEventListener('click', () => {
     if (!window.__isGameStarted()) return;
     clearWaypoints();
@@ -1912,51 +2396,503 @@ html, body { margin:0; height:100%; overflow:hidden;
 })();
 
 /* =========================================================================
-   5. VHF RADIO
+   6. LIVE AIS TRAFFIC — real vessels from facha.dev
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const map = window.__shipMap;
+
+  function classifyAIS(typeCode, slug) {
+    if (slug) {
+      const s = String(slug).toLowerCase();
+      if (s.includes('sailing') || s.includes('pleasure') || s.includes('yacht')) return 'yacht';
+      if (s.includes('fishing'))   return 'fishing';
+      if (s.includes('passenger')) return 'ferry';
+      if (s.includes('high') || s.includes('speed')) return 'ferry';
+      if (s.includes('tug') || s.includes('pilot') || s.includes('sar') ||
+          s.includes('port') || s.includes('tender') || s.includes('dredg')) return 'cargo';
+      if (s.includes('tanker') || s.includes('hazard')) return 'tanker';
+      if (s.includes('cargo') || s.includes('container') || s.includes('bulk')) return 'cargo';
+    }
+    const t = Number(typeCode);
+    if (t === 30)             return 'fishing';
+    if (t === 36 || t === 37) return 'yacht';
+    if (t >= 40 && t <= 49)   return 'ferry';
+    if (t >= 60 && t <= 69)   return 'ferry';
+    if (t >= 70 && t <= 79)   return 'cargo';
+    if (t >= 80 && t <= 89)   return 'tanker';
+    return 'other';
+  }
+
+  const COLORS = {
+    ferry:     '#22d3ee',
+    container: '#a78bfa',
+    tanker:    '#ef4444',
+    bulker:    '#f59e0b',
+    cargo:     '#4ade80',
+    fishing:   '#84cc16',
+    yacht:     '#f472b6',
+    other:     '#94a3b8'
+  };
+
+  const ships = [];
+  window.__traffic = {
+    ships,
+    source: 'facha.dev',
+    status: 'idle',
+    lastUpdate: 0,
+    lastError: null,
+    distanceNm: (lat1, lon1, lat2, lon2) => {
+      const R = 3440.065, toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
+  };
+
+  function drawSuperstructure(g, cls, cx, top, bot, halfW) {
+    const len = bot - top;
+    g.fillStyle = '#f8fafc';
+    g.strokeStyle = 'rgba(15,23,42,.55)';
+    g.lineWidth = 1.2;
+
+    if (cls === 'tanker') {
+      const sh = len * 0.16, sw = halfW * 0.9;
+      g.fillRect(cx - sw, bot - sh - 2, sw * 2, sh);
+      g.strokeRect(cx - sw, bot - sh - 2, sw * 2, sh);
+      g.beginPath();
+      g.moveTo(cx, top + len * 0.05);
+      g.lineTo(cx, top + len * 0.22);
+      g.strokeStyle = '#f8fafc'; g.lineWidth = 2; g.stroke();
+    }
+    else if (cls === 'container') {
+      const rows = 6, cols = 2, cw = (halfW * 1.5) / cols, ch = (len * 0.52) / rows;
+      const y0 = top + len * 0.22, x0 = cx - (cw * cols) / 2;
+      const pal = ['#f97316','#0ea5e9','#22c55e','#eab308','#ef4444','#a855f7'];
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        g.fillStyle = pal[(r * cols + c) % pal.length];
+        g.fillRect(x0 + c * cw + 0.5, y0 + r * ch + 0.5, cw - 1, ch - 1);
+        g.strokeStyle = 'rgba(15,23,42,.55)';
+        g.strokeRect(x0 + c * cw + 0.5, y0 + r * ch + 0.5, cw - 1, ch - 1);
+      }
+      const sh = len * 0.14, sw = halfW * 0.75;
+      g.fillStyle = '#f8fafc'; g.strokeStyle = 'rgba(15,23,42,.55)'; g.lineWidth = 1.2;
+      g.fillRect(cx - sw, bot - sh - 2, sw * 2, sh);
+      g.strokeRect(cx - sw, bot - sh - 2, sw * 2, sh);
+    }
+    else if (cls === 'bulker') {
+      const n = 4, y1 = top + len * 0.22, y2 = bot - len * 0.22, sp = (y2 - y1) / n;
+      for (let i = 0; i < n; i++) {
+        const y = y1 + sp * (i + 0.5);
+        g.beginPath(); g.arc(cx, y, 3, 0, Math.PI * 2);
+        g.fillStyle = '#f8fafc'; g.fill();
+        g.strokeStyle = 'rgba(15,23,42,.6)'; g.lineWidth = 1; g.stroke();
+        g.beginPath();
+        g.moveTo(cx, y - 2); g.lineTo(cx + halfW * 0.75, y - 9);
+        g.strokeStyle = '#f8fafc'; g.lineWidth = 1.5; g.stroke();
+      }
+      const sh = len * 0.14, sw = halfW * 0.8;
+      g.fillStyle = '#f8fafc'; g.strokeStyle = 'rgba(15,23,42,.55)'; g.lineWidth = 1.2;
+      g.fillRect(cx - sw, bot - sh - 2, sw * 2, sh);
+      g.strokeRect(cx - sw, bot - sh - 2, sw * 2, sh);
+    }
+    else if (cls === 'ferry') {
+      const sw = halfW * 0.85, sh = len * 0.55, y = top + len * 0.20;
+      g.fillStyle = '#f8fafc'; g.strokeStyle = 'rgba(15,23,42,.55)'; g.lineWidth = 1.2;
+      g.fillRect(cx - sw, y, sw * 2, sh);
+      g.strokeRect(cx - sw, y, sw * 2, sh);
+      g.fillStyle = '#0ea5e9';
+      for (let i = -1; i <= 1; i++) g.fillRect(cx + i * (sw * 0.55) - 3, y + sh * 0.30, 6, 3);
+    }
+    else if (cls === 'cargo') {
+      const sw = halfW * 0.85, sh = len * 0.18, y = bot - sh - 2;
+      g.fillStyle = '#f8fafc'; g.strokeStyle = 'rgba(15,23,42,.55)'; g.lineWidth = 1.2;
+      g.fillRect(cx - sw, y, sw * 2, sh);
+      g.strokeRect(cx - sw, y, sw * 2, sh);
+    }
+    else if (cls === 'fishing') {
+      g.fillRect(cx - halfW * 0.5, bot - len * 0.30, halfW, len * 0.15);
+      g.strokeRect(cx - halfW * 0.5, bot - len * 0.30, halfW, len * 0.15);
+      g.beginPath();
+      g.moveTo(cx, top + len * 0.15); g.lineTo(cx, bot - len * 0.30);
+      g.strokeStyle = '#f8fafc'; g.lineWidth = 2; g.stroke();
+      g.beginPath(); g.arc(cx, top + len * 0.13, 2.2, 0, Math.PI * 2);
+      g.fillStyle = '#fde047'; g.fill();
+    }
+    else if (cls === 'yacht') {
+      const sw = halfW * 0.55, sh = len * 0.30;
+      g.fillStyle = '#f8fafc'; g.strokeStyle = 'rgba(15,23,42,.55)'; g.lineWidth = 1.2;
+      g.fillRect(cx - sw, top + len * 0.32, sw * 2, sh);
+      g.strokeRect(cx - sw, top + len * 0.32, sw * 2, sh);
+    }
+  }
+
+  function makeIcon(cls, color) {
+    const S = 128;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, S, S);
+
+    const cx = S / 2;
+    const top = 6, bot = S - 6;
+    const halfW = (cls === 'yacht' || cls === 'fishing') ? 12 : 18;
+
+    g.beginPath();
+    g.moveTo(cx, top);
+    g.lineTo(cx + halfW, top + (bot - top) * 0.28);
+    g.lineTo(cx + halfW, bot);
+    g.lineTo(cx - halfW, bot);
+    g.lineTo(cx - halfW, top + (bot - top) * 0.28);
+    g.closePath();
+    g.fillStyle = color;
+    g.globalAlpha = 0.95;
+    g.fill();
+    g.globalAlpha = 1;
+    g.strokeStyle = 'rgba(255,255,255,.9)';
+    g.lineWidth = 2.5;
+    g.lineJoin = 'round';
+    g.stroke();
+
+    drawSuperstructure(g, cls, cx, top, bot, halfW);
+    return c.toDataURL('image/png');
+  }
+
+  let iconsPromise = null;
+  function loadIcons() {
+    if (iconsPromise) return iconsPromise;
+    iconsPromise = Promise.all(
+      Object.entries(COLORS).map(([cls, color]) => new Promise(resolve => {
+        const id = 'ai-icon-' + cls;
+        if (map.hasImage(id)) return resolve(true);
+        const img = new Image();
+        img.onload = () => {
+          try { if (!map.hasImage(id)) map.addImage(id, img); resolve(true); }
+          catch (e) { resolve(false); }
+        };
+        img.onerror = () => resolve(false);
+        img.src = makeIcon(cls, color);
+      }))
+    );
+    return iconsPromise;
+  }
+
+  function addLayers() {
+    try {
+      if (!map.getSource('ais-traffic')) {
+        map.addSource('ais-traffic', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+        console.log('[AIS] source created');
+      }
+
+      if (!map.getLayer('ais-traffic-icons')) {
+        map.addLayer({
+          id: 'ais-traffic-icons',
+          type: 'symbol',
+          source: 'ais-traffic',
+          layout: {
+            'icon-image': ['concat', 'ai-icon-', ['get', 'cls']],
+            'icon-size': [
+              'interpolate', ['linear'], ['zoom'],
+              3,  ['*', 0.16, ['get', 'sizeFactor']],
+              8,  ['*', 0.20, ['get', 'sizeFactor']],
+              12, ['*', 0.24, ['get', 'sizeFactor']],
+              16, ['*', 0.28, ['get', 'sizeFactor']]
+            ],
+            'icon-rotate': ['get', 'heading'],
+            'icon-rotation-alignment': 'map',
+            'icon-pitch-alignment': 'map',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            'icon-padding': 0
+          }
+        });
+        console.log('[AIS] icons layer created');
+      }
+
+      if (!map.getLayer('ais-traffic-labels')) {
+        map.addLayer({
+          id: 'ais-traffic-labels',
+          type: 'symbol',
+          source: 'ais-traffic',
+          minzoom: 10,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 10,
+            'text-offset': [0, 1.5],
+            'text-anchor': 'top',
+            'text-allow-overlap': false,
+            'text-optional': true
+          },
+          paint: {
+            'text-color': '#ffd166',
+            'text-halo-color': 'rgba(3,6,12,.94)',
+            'text-halo-width': 1.5
+          }
+        });
+        console.log('[AIS] labels layer created');
+      }
+
+      return map.getLayer('ais-traffic-icons') && map.getLayer('ais-traffic-labels');
+    } catch (e) {
+      console.error('[AIS] addLayers error:', e);
+      return false;
+    }
+  }
+
+  function pushFC() {
+    const src = map.getSource('ais-traffic');
+    if (!src) return;
+    const features = [];
+    for (const s of ships) {
+      if (!isFinite(s._currentLat) || !isFinite(s._currentLon)) continue;
+      features.push({
+        type: 'Feature',
+        properties: {
+          name: typeof s.name === 'string' ? s.name : '',
+          cls:  typeof s.cls === 'string' ? s.cls : 'other',
+          heading: Number(s._heading) || 0,
+          sizeFactor: Number(s.sizeFactor) || 1
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [s._currentLon, s._currentLat]
+        }
+      });
+    }
+    src.setData({ type: 'FeatureCollection', features });
+  }
+
+  function normalise(raw) {
+    const lon = Number(raw.longitude);
+    const lat = Number(raw.latitude);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+
+    const cls = classifyAIS(raw.type, raw.vesselTypeSlug);
+
+    const bow   = Number(raw.dimensionToBow)   || 0;
+    const stern = Number(raw.dimensionToStern) || 0;
+    let length = bow + stern;
+    if (!(length > 5 && length < 500)) length = estimateLength(cls);
+
+    let heading = Number(raw.heading);
+    if (!(isFinite(heading) && heading >= 0 && heading < 360)) {
+      const cog = Number(raw.courseOverGround);
+      heading = (isFinite(cog) && cog >= 0 && cog < 360) ? cog : 0;
+    }
+
+    const sog = Number(raw.speedOverGround);
+    const safeSog = isFinite(sog) && sog >= 0 && sog < 200 ? sog : 0;
+
+    const name = (raw.name || '').trim() || ('MMSI ' + (raw.mmsi || '?'));
+
+    return {
+      mmsi: String(raw.mmsi || ''),
+      name,
+      cls,
+      lengthM: length,
+      draught: Number(raw.draught) || 0,
+      sog: safeSog,
+      heading,
+      _heading: heading,
+      lat, lon,
+      _currentLat: lat, _currentLon: lon,
+      _targetLat:  lat, _targetLon:  lon,
+      sizeFactor: 0.75 + Math.sqrt(length / 500)
+    };
+  }
+
+  function estimateLength(cls) {
+    if (cls === 'yacht')   return 25;
+    if (cls === 'fishing') return 22;
+    if (cls === 'ferry')   return 150;
+    if (cls === 'cargo')   return 160;
+    if (cls === 'tanker')  return 200;
+    return 60;
+  }
+
+  const RADIUS_KM = 25;
+  const REFRESH_MS = 45 * 1000;
+  const RETRY_MS   = 15 * 1000;
+  let refreshTimer = null;
+
+  async function fetchAIS() {
+    const player = window.__ship;
+    if (!player) return;
+
+    window.__traffic.status = 'loading';
+    const url = 'https://api.facha.dev/v1/ship/radius/' +
+                player.lat.toFixed(4) + '/' + player.lon.toFixed(4) + '/' + RADIUS_KM;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        if (data && data.error) throw new Error(data.error);
+        throw new Error('Unexpected response shape');
+      }
+
+      applyShips(data);
+      window.__traffic.status = 'live';
+      window.__traffic.lastUpdate = Date.now();
+      window.__traffic.lastError = null;
+      console.log('[AIS] ' + data.length + ' vessels in ' + RADIUS_KM + ' km radius');
+      scheduleNext(REFRESH_MS);
+    } catch (e) {
+      window.__traffic.status = 'error';
+      window.__traffic.lastError = String(e);
+      console.warn('[AIS] fetch failed:', e);
+      scheduleNext(RETRY_MS);
+    }
+  }
+
+  function scheduleNext(ms) {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(fetchAIS, ms);
+  }
+
+  function applyShips(list) {
+    const byMmsi = new Map();
+    for (const s of ships) byMmsi.set(s.mmsi, s);
+
+    const seen = new Set();
+
+    for (const raw of list) {
+      const n = normalise(raw);
+      if (!n || !n.mmsi) continue;
+
+      const vessel = window.__vessel;
+      if (vessel && String(vessel.mmsi) === n.mmsi) continue;
+
+      seen.add(n.mmsi);
+
+      const existing = byMmsi.get(n.mmsi);
+      if (existing) {
+        existing._targetLat = n.lat;
+        existing._targetLon = n.lon;
+        existing.heading    = n.heading;
+        existing.sog        = n.sog;
+        existing.name       = n.name;
+        existing.cls        = n.cls;
+        existing.sizeFactor = n.sizeFactor;
+        existing.lengthM    = n.lengthM;
+      } else {
+        ships.push(n);
+      }
+    }
+
+    for (let i = ships.length - 1; i >= 0; i--) {
+      if (!seen.has(ships[i].mmsi)) ships.splice(i, 1);
+    }
+
+    const el = $('ais-count');
+    if (el) el.textContent = ships.length;
+  }
+
+  let lastInterp = performance.now();
+  let lastPush = 0;
+
+  function interpolate(now) {
+    const dt = Math.min((now - lastInterp) / 1000, 0.5);
+    lastInterp = now;
+
+    if (ships.length) {
+      const posLerp = Math.min(1, dt * 0.35);
+      const hdgLerp = Math.min(1, dt * 2.0);
+
+      for (const s of ships) {
+        s._currentLat += (s._targetLat - s._currentLat) * posLerp;
+        s._currentLon += (s._targetLon - s._currentLon) * posLerp;
+
+        let dh = s.heading - s._heading;
+        while (dh > 180) dh -= 360;
+        while (dh < -180) dh += 360;
+        s._heading = (s._heading + dh * hdgLerp + 360) % 360;
+
+        s.lat = s._currentLat;
+        s.lon = s._currentLon;
+      }
+
+      if (now - lastPush > 66) {
+        pushFC();
+        lastPush = now;
+      }
+    }
+    requestAnimationFrame(interpolate);
+  }
+  requestAnimationFrame(interpolate);
+
+  let booted = false;
+  function boot() {
+    if (booted) return;
+    if (!map.isStyleLoaded()) { setTimeout(boot, 400); return; }
+    booted = true;
+    loadIcons().then(() => {
+      addLayers();
+      fetchAIS();
+    });
+  }
+
+  window.addEventListener('bridge:started', boot);
+  if (window.__isGameStarted && window.__isGameStarted()) boot();
+
+  map.on('styledata', () => {
+    if (booted && !map.getLayer('ais-traffic-icons')) {
+      addLayers();
+      pushFC();
+    }
+  });
+
+  window.__aisRefresh = fetchAIS;
+
+  window.__debugTraffic = () => {
+    console.log('Source:  ', window.__traffic.source);
+    console.log('Status:  ', window.__traffic.status);
+    console.log('Ships:   ', ships.length);
+    if (window.__traffic.lastUpdate) {
+      const ago = ((Date.now() - window.__traffic.lastUpdate) / 1000).toFixed(0);
+      console.log('Last update: ' + ago + ' s ago');
+    }
+    console.log('Icon layer:  ', !!map.getLayer('ais-traffic-icons'));
+    console.log('Label layer: ', !!map.getLayer('ais-traffic-labels'));
+    if (window.__traffic.lastError) console.warn('Last error:', window.__traffic.lastError);
+  };
+})();
+
+/* =========================================================================
+   7. VHF RADIO
    ========================================================================= */
 (() => {
   'use strict';
 
   const $ = id => document.getElementById(id);
 
-  // =========================================================
-  // Audio engine (Web Audio API)
-  // =========================================================
-  let audioCtx      = null;
-  let staticGain    = null;
-  let muted         = false;
+  let audioCtx = null, staticGain = null, muted = false;
 
   function ensureAudio() {
-    if (audioCtx) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      return;
-    }
+    if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-      // Persistent low-level band-passed white noise = radio static hum
       const bufSize = audioCtx.sampleRate * 2;
-      const buffer  = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const data    = buffer.getChannelData(0);
+      const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
       for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
-
       const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.loop = true;
-
+      src.buffer = buffer; src.loop = true;
       const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1600;
-      filter.Q.value = 0.7;
-
+      filter.type = 'bandpass'; filter.frequency.value = 1600; filter.Q.value = 0.7;
       staticGain = audioCtx.createGain();
       staticGain.gain.value = 0;
-
       src.connect(filter).connect(staticGain).connect(audioCtx.destination);
       src.start();
-    } catch (e) {
-      console.warn('[VHF] Audio init failed:', e);
-    }
+    } catch (e) { console.warn('[VHF] Audio init failed:', e); }
   }
 
   function setStatic(level) {
@@ -1966,46 +2902,34 @@ html, body { margin:0; height:100%; overflow:hidden;
     staticGain.gain.cancelScheduledValues(now);
     staticGain.gain.linearRampToValueAtTime(target, now + 0.12);
   }
-
   function beep(freq = 900, dur = 0.06, vol = 0.1) {
     if (!audioCtx || muted) return;
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
+    o.type = 'sine'; o.frequency.value = freq;
     o.connect(g).connect(audioCtx.destination);
     const now = audioCtx.currentTime;
     g.gain.setValueAtTime(0, now);
     g.gain.linearRampToValueAtTime(vol, now + 0.01);
     g.gain.setValueAtTime(vol, now + dur - 0.015);
     g.gain.linearRampToValueAtTime(0, now + dur);
-    o.start(now);
-    o.stop(now + dur + 0.02);
+    o.start(now); o.stop(now + dur + 0.02);
   }
-
   function noiseBurst(dur = 0.12, vol = 0.16) {
     if (!audioCtx || muted) return;
     const bufSize = Math.floor(audioCtx.sampleRate * dur);
-    const buffer  = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data    = buffer.getChannelData(0);
+    const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
     for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
     const src = audioCtx.createBufferSource();
     src.buffer = buffer;
     const filter = audioCtx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1400;
-    filter.Q.value = 0.5;
-    const g = audioCtx.createGain();
-    g.gain.value = vol;
+    filter.type = 'bandpass'; filter.frequency.value = 1400; filter.Q.value = 0.5;
+    const g = audioCtx.createGain(); g.gain.value = vol;
     src.connect(filter).connect(g).connect(audioCtx.destination);
     src.start();
   }
-
-  function rogerBeep() {
-    beep(1100, 0.06, 0.09);
-    setTimeout(() => beep(1100, 0.06, 0.09), 90);
-  }
-
+  function rogerBeep() { beep(1100, 0.06, 0.09); setTimeout(() => beep(1100, 0.06, 0.09), 90); }
   function distressAlarm() {
     for (let i = 0; i < 5; i++) {
       setTimeout(() => beep(700, 0.24, 0.15), i * 480);
@@ -2013,15 +2937,26 @@ html, body { margin:0; height:100%; overflow:hidden;
     }
   }
 
-  // =========================================================
-  // Text-to-speech (best-effort radio voice)
-  // =========================================================
-  function speak(text, onEnd) {
+  const voiceProfiles = new Map();
+  function voiceFor(name) {
+    if (!voiceProfiles.has(name)) {
+      let h = 0;
+      for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+      const rand = (seed) => { const x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+      voiceProfiles.set(name, {
+        pitch: 0.75 + rand(h) * 0.55,
+        rate:  0.88 + rand(h + 1) * 0.22
+      });
+    }
+    return voiceProfiles.get(name);
+  }
+
+  function speak(name, text, onEnd) {
     if (muted || !('speechSynthesis' in window)) { onEnd && onEnd(); return; }
     try {
+      const prof = voiceFor(name || '');
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.95;
-      u.pitch = 0.9;
+      u.rate = prof.rate; u.pitch = prof.pitch;
       u.volume = Math.min(1, radio.volume / 100);
       u.onend = () => onEnd && onEnd();
       u.onerror = () => onEnd && onEnd();
@@ -2030,47 +2965,36 @@ html, body { margin:0; height:100%; overflow:hidden;
     } catch (e) { onEnd && onEnd(); }
   }
 
-  // =========================================================
-  // Radio state
-  // =========================================================
   const radio = {
-    ch: 16,
-    volume: 65,
-    squelch: 40,
-    state: 'idle',       // idle | rx | tx | scan
-    ptt: false,
-    scanning: false,
-    scanTimer: null,
-    chatterTimer: null,
-    log: []
+    ch: 16, volume: 65, squelch: 40,
+    state: 'idle', ptt: false, scanning: false,
+    scanTimer: null, chatterTimer: null, log: []
   };
 
   const CHANNELS = {
-    6:  { name: 'Intership',           traffic: 0.5 },
-    9:  { name: 'Harbour',             traffic: 0.35 },
-    10: { name: 'Harbour',             traffic: 0.35 },
-    13: { name: 'Bridge-to-bridge',    traffic: 0.7 },
-    15: { name: 'Port ops',            traffic: 0.5 },
-    16: { name: 'Distress & calling',  traffic: 0.8 },
-    72: { name: 'Intership',           traffic: 0.5 },
-    77: { name: 'Intership',           traffic: 0.5 }
+    6: { name: 'Intership', traffic: 0.5 },
+    9: { name: 'Harbour', traffic: 0.35 },
+    10: { name: 'Harbour', traffic: 0.35 },
+    13: { name: 'Bridge-to-bridge', traffic: 0.7 },
+    15: { name: 'Port ops', traffic: 0.5 },
+    16: { name: 'Distress & calling', traffic: 0.8 },
+    72: { name: 'Intership', traffic: 0.5 },
+    77: { name: 'Intership', traffic: 0.5 }
   };
 
-  // =========================================================
-  // Log
-  // =========================================================
   function logAdd(kind, text) {
     const now = new Date();
     const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     radio.log.unshift({ kind, text, t });
-    if (radio.log.length > 60) radio.log.pop();
+    if (radio.log.length > 80) radio.log.pop();
     renderLog();
   }
+  window.__radioLog = logAdd;
 
   function renderLog() {
     const el = $('vhf-log');
     if (!el) return;
-    el.innerHTML = radio.log.slice(0, 40).map(e => `
+    el.innerHTML = radio.log.slice(0, 50).map(e => `
       <div class="entry ${e.kind}">
         <span class="t">${e.t}</span>
         <span>${e.text}</span>
@@ -2078,25 +3002,19 @@ html, body { margin:0; height:100%; overflow:hidden;
     `).join('');
   }
 
-  // =========================================================
-  // UI updates
-  // =========================================================
   function updateStatus() {
     const ind = $('vhf-state');
     ind.textContent = radio.state.toUpperCase();
     ind.className = 'vhf-ind ' + radio.state;
-
     const bars = $('vhf-bars');
     let sig = 3;
     if (radio.state === 'rx' || radio.state === 'tx') sig = 4;
     else if (radio.state === 'scan') sig = 2;
     bars.className = 'vhf-bars sig-' + sig;
-
     $('vhf-ch-name').textContent = (CHANNELS[radio.ch]?.name) || '—';
     $('vhf-pw').textContent = '25W';
     $('vhf-sq').textContent = radio.ch === 16
-      ? 'OFF (16)'
-      : (radio.squelch >= 90 ? 'CLOSED' : 'AUTO');
+      ? 'OFF (16)' : (radio.squelch >= 90 ? 'CLOSED' : 'AUTO');
   }
 
   function updateStaticHum() {
@@ -2107,9 +3025,6 @@ html, body { margin:0; height:100%; overflow:hidden;
     setStatic(level);
   }
 
-  // =========================================================
-  // Channel change
-  // =========================================================
   function setChannel(ch) {
     if (ch === radio.ch) return;
     radio.ch = ch;
@@ -2118,55 +3033,76 @@ html, body { margin:0; height:100%; overflow:hidden;
       b.classList.toggle('active', parseInt(b.dataset.ch, 10) === ch));
     beep(880, 0.05, 0.07);
     logAdd('ch', `CH ${ch} · ${CHANNELS[ch]?.name || ''}`);
-    updateStatus();
-    updateStaticHum();
-    scheduleChatter();
+    updateStatus(); updateStaticHum(); scheduleChatter();
   }
 
-  // =========================================================
-  // Scripted chatter
-  // =========================================================
-  const CHATTER = {
-    6: [
-      { from: 'MV Aurora', text: 'Aurora, switch to channel seven two.' },
-      { from: 'Fishing vessel San Marco', text: 'San Marco, nets clear, proceeding south.' }
-    ],
-    9: [
-      { from: 'Port Control', text: 'All vessels, harbour channel nine, how do you read?' },
-      { from: 'MV Levante', text: 'Port control, Levante, reading you loud and clear.' }
-    ],
-    10: [
-      { from: 'Marina office', text: 'Berth three is now available for the incoming yacht.' }
-    ],
-    13: [
-      { from: 'MV Tirreno', text: 'Tirreno on your port bow, crossing, please confirm.' },
-      { from: 'Pilot boat Alfa', text: 'Coming alongside on your starboard side.' }
-    ],
-    15: [
-      { from: 'Port ops', text: 'Tug is standing by at the breakwater.' },
-      { from: 'Mooring team', text: 'Lines ready on pier four.' }
-    ],
-    16: [
-      { from: 'Coast Guard', text: 'All stations, this is Coast Guard, radio check.' },
-      { from: 'MV Atlas', text: 'Coast Guard, Atlas, reading you five by five.' }
-    ],
-    72: [
-      { from: 'MV Atlas', text: 'Good afternoon, no traffic in vicinity.' },
-      { from: 'MV Aurora', text: 'Roger that, will take the western route.' }
-    ],
-    77: [
-      { from: 'Yacht Bella', text: 'Bella calling Neptune Star, do you copy?' }
-    ]
-  };
+  function nearbyTraffic(radiusNm = 8) {
+    const ships = (window.__traffic && window.__traffic.ships) || [];
+    const own = window.__ship;
+    if (!own) return [];
+    return ships
+      .map(s => ({ ship: s, dist: window.__traffic.distanceNm(own.lat, own.lon, s.lat, s.lon) }))
+      .filter(x => x.dist < radiusNm)
+      .sort((a, b) => a.dist - b.dist);
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function generateMessage(ch) {
+    const own = window.__ship || { name: 'vessel', heading: 0, sog: 0 };
+    const ownName = (own.name || 'vessel').replace(/^(MV|MT|FV|GNV)\s+/i, '');
+    const wx = window.__weather || {};
+    const near = nearbyTraffic(6);
+
+    if (near.length && Math.random() < 0.4) {
+      const other = near[0];
+      const otherShort = other.ship.name.replace(/^(MV|MT|FV|GNV)\s+/i, '');
+      const templates = [
+        { from: other.ship.name,
+          text: `${ownName}, ${ownName}, this is ${otherShort} on channel one three, over.` },
+        { from: other.ship.name,
+          text: `${ownName}, ${otherShort} calling. We are ${other.dist.toFixed(1)} miles from you. Request your intentions.` },
+        { from: other.ship.name,
+          text: `${otherShort} to ${ownName}. Crossing your bow. Are you standing on?` }
+      ];
+      return pick(templates);
+    }
+
+    const weatherLines = [
+      { from: 'Coast Guard', text: `All stations, all stations. This is Italian Coast Guard. Marine weather for the Ligurian and Tyrrhenian sea. Wind ${Math.round((wx.windSpd || 15) / 5) * 5} knots, sea state ${((wx.wave || 1).toFixed(1))} metres. Visibility good. Out.` },
+      { from: 'Port Control Genova', text: `Genova Port Control. All inbound traffic, report at two miles for instructions.` },
+      { from: 'Port Control Livorno', text: `Livorno Port Control. Pilot boat is departing for the inbound tanker. Stand by on one three.` },
+      { from: 'Coast Guard', text: `Pan pan, pan pan, pan pan. All stations, this is Coast Guard. A small sailing vessel is adrift three miles south of Capraia. Keep a sharp lookout.` },
+      { from: 'Navtex Broadcast', text: `Navigational warning. A cardinal mark is off station near Elba. Mariners are advised to navigate with caution.` }
+    ];
+    const situational = [
+      { from: 'Pilot boat Alfa', text: `Pilot on board. We are proceeding toward the breakwater.` },
+      { from: 'Tug Hercules',    text: `Tug alongside on the port quarter. Ready to make fast.` },
+      { from: 'Ferry GNV Excellent', text: `Ferry departing Genova for Palermo. Bound for open sea.` },
+      { from: 'Fishing vessel San Marco', text: `Hauling nets in position four two degrees thirty five north, ten degrees twenty east. Mariners advised to keep clear.` }
+    ];
+
+    if (ch === 16) return pick([...weatherLines, ...situational]);
+    if (ch === 13) return pick([
+      { from: 'MV Tirreno', text: `Tirreno eastbound through the strait of Bonifacio, heading one eight five.` },
+      { from: 'MV Adriatico', text: `Adriatico on the northbound lane, position ${window.__fmtLat(own.lat)} ${window.__fmtLon(own.lon)}.` },
+      { from: 'Ferry Moby Aki', text: `Passing two miles off Capo Mele. Good watch.` }
+    ]);
+    if (ch === 6 || ch === 72 || ch === 77) return pick(situational);
+    if (ch === 9 || ch === 10 || ch === 15) return pick([
+      { from: 'Port Control', text: `All harbour vessels, channel nine, how do you read?` },
+      { from: 'Marina office', text: `Berth three is now available.` }
+    ]);
+    return pick(weatherLines);
+  }
 
   let speakingQueue = 0;
-
   function scheduleChatter() {
     if (radio.chatterTimer) clearTimeout(radio.chatterTimer);
     const chInfo = CHANNELS[radio.ch];
     if (!chInfo) return;
-    const baseDelay = 12000 + (1 - chInfo.traffic) * 25000;
-    const delay = baseDelay + Math.random() * 20000;
+    const baseDelay = 14000 + (1 - chInfo.traffic) * 22000;
+    const delay = baseDelay + Math.random() * 18000;
     radio.chatterTimer = setTimeout(() => {
       if (!radio.scanning && !radio.ptt) fireChatter();
       scheduleChatter();
@@ -2174,59 +3110,45 @@ html, body { margin:0; height:100%; overflow:hidden;
   }
 
   function fireChatter() {
-    const lines = CHATTER[radio.ch];
-    if (!lines || !lines.length || speakingQueue > 0) return;
-
-    const line = lines[Math.floor(Math.random() * lines.length)];
+    if (speakingQueue > 0) return;
+    const msg = generateMessage(radio.ch);
+    if (!msg) return;
     radio.state = 'rx';
-    updateStatus();
-    updateStaticHum();
+    updateStatus(); updateStaticHum();
     noiseBurst(0.15, 0.10);
-    logAdd('rx', `${line.from}: "${line.text}"`);
+    logAdd('rx', `${msg.from}: "${msg.text}"`);
     speakingQueue++;
-
     setTimeout(() => {
-      speak(line.text, () => {
+      speak(msg.from, msg.text, () => {
         rogerBeep();
         speakingQueue = Math.max(0, speakingQueue - 1);
         setTimeout(() => {
           if (!radio.scanning && !radio.ptt && speakingQueue === 0) {
-            radio.state = 'idle';
-            updateStatus();
-            updateStaticHum();
+            radio.state = 'idle'; updateStatus(); updateStaticHum();
           }
         }, 600);
       });
     }, 350);
-
-    // Safety: if speech never fires onEnd, release after 10s.
     setTimeout(() => {
       if (speakingQueue > 0) {
         speakingQueue = Math.max(0, speakingQueue - 1);
         if (!radio.scanning && !radio.ptt && speakingQueue === 0) {
-          radio.state = 'idle';
-          updateStatus();
-          updateStaticHum();
+          radio.state = 'idle'; updateStatus(); updateStaticHum();
         }
       }
-    }, 10000);
+    }, 12000);
   }
+  window.__radioChatter = fireChatter;
 
-  // =========================================================
-  // Channel scan
-  // =========================================================
   const SCAN_ORDER = [6, 9, 10, 13, 15, 16, 72, 77];
 
   function startScan() {
     if (radio.scanning) return;
-    radio.scanning = true;
-    radio.state = 'scan';
+    radio.scanning = true; radio.state = 'scan';
     $('scan-btn').classList.add('on');
     $('scan-btn').textContent = 'STOP';
     logAdd('sys', 'Scan started.');
-    updateStatus();
-    updateStaticHum();
-    scanStep();
+    updateStatus(); updateStaticHum(); scanStep();
   }
   function stopScan() {
     if (!radio.scanning) return;
@@ -2236,48 +3158,34 @@ html, body { margin:0; height:100%; overflow:hidden;
     $('scan-btn').classList.remove('on');
     $('scan-btn').textContent = 'SCAN';
     logAdd('sys', 'Scan stopped.');
-    updateStatus();
-    updateStaticHum();
+    updateStatus(); updateStaticHum();
   }
   function scanStep() {
     if (!radio.scanning) return;
-    const idx  = SCAN_ORDER.indexOf(radio.ch);
+    const idx = SCAN_ORDER.indexOf(radio.ch);
     const next = SCAN_ORDER[(idx + 1) % SCAN_ORDER.length];
-    setChannel(next);
-    updateStaticHum();
+    setChannel(next); updateStaticHum();
     radio.scanTimer = setTimeout(scanStep, 1800);
   }
 
-  // =========================================================
-  // PTT
-  // =========================================================
   function startPTT() {
     if (radio.ptt || radio.scanning) return;
-    radio.ptt = true;
-    radio.state = 'tx';
+    radio.ptt = true; radio.state = 'tx';
     $('ptt-btn').classList.add('active');
-    updateStatus();
-    updateStaticHum();
+    updateStatus(); updateStaticHum();
     beep(1500, 0.05, 0.08);
     logAdd('tx', `Transmitting on CH ${radio.ch}…`);
   }
   function stopPTT() {
     if (!radio.ptt) return;
-    radio.ptt = false;
-    radio.state = 'idle';
+    radio.ptt = false; radio.state = 'idle';
     $('ptt-btn').classList.remove('active');
     rogerBeep();
     logAdd('sys', 'Transmission ended.');
-    updateStatus();
-    updateStaticHum();
+    updateStatus(); updateStaticHum();
   }
 
-  // =========================================================
-  // DSC distress (two-step arm)
-  // =========================================================
-  let dscSent   = false;
-  let dscArmed  = false;
-  let dscTimer  = null;
+  let dscSent = false, dscArmed = false, dscTimer = null;
 
   function armDsc() {
     if (dscSent) return;
@@ -2303,37 +3211,28 @@ html, body { margin:0; height:100%; overflow:hidden;
   function sendDistress() {
     if (dscSent) return;
     dscSent = true;
-
     const btn = $('dsc-btn');
     btn.classList.remove('armed');
     btn.classList.add('sent');
     btn.textContent = 'SENT';
-
     const sp = window.__ship || { lat: 0, lon: 0 };
-    const pos = fmtLat(sp.lat) + ' ' + fmtLon(sp.lon);
-
+    const pos = window.__fmtLat(sp.lat) + ' ' + window.__fmtLon(sp.lon);
     radio.state = 'tx';
-    updateStatus();
-    updateStaticHum();
-
+    updateStatus(); updateStaticHum();
     logAdd('dsc', '◉ DSC DISTRESS ALERT TRANSMITTED');
     logAdd('dsc', `Position: ${pos}`);
     logAdd('dsc', 'Nature: Undesignated');
     distressAlarm();
-
     setTimeout(() => {
       if (!radio.ptt) { radio.state = 'idle'; updateStatus(); updateStaticHum(); }
     }, 3200);
-
-    // Simulated Coast Guard response
     setTimeout(() => {
       radio.state = 'rx';
-      updateStatus();
-      updateStaticHum();
+      updateStatus(); updateStaticHum();
       noiseBurst(0.2, 0.14);
-      const msg = 'Vessel in distress, this is Coast Guard, acknowledge.';
+      const msg = 'Vessel in distress, this is Italian Coast Guard, acknowledge. Rescue assets are being dispatched. Switch to channel one six, over.';
       logAdd('rx', `Coast Guard: "${msg}"`);
-      speak(msg, () => {
+      speak('Coast Guard', msg, () => {
         rogerBeep();
         setTimeout(() => {
           if (!radio.ptt) { radio.state = 'idle'; updateStatus(); updateStaticHum(); }
@@ -2342,25 +3241,18 @@ html, body { margin:0; height:100%; overflow:hidden;
     }, 5600);
   }
 
-  // =========================================================
-  // Interactive knobs (drag up/down or mouse-wheel)
-  // =========================================================
   function makeKnob(el, getter, setter, min = 0, max = 100) {
-    let dragging = false;
-    let startY   = 0;
-    let startVal = 0;
-
+    let dragging = false, startY = 0, startVal = 0;
     const onDown = (e) => {
       ensureAudio();
       dragging = true;
-      const y = e.touches ? e.touches[0].clientY : e.clientY;
-      startY = y;
+      startY = (e.touches ? e.touches[0].clientY : e.clientY);
       startVal = getter();
       e.preventDefault();
     };
     const onMove = (e) => {
       if (!dragging) return;
-      const y  = e.touches ? e.touches[0].clientY : e.clientY;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY);
       const dy = startY - y;
       const range = max - min;
       const nv = Math.max(min, Math.min(max, startVal + dy * range / 120));
@@ -2368,13 +3260,12 @@ html, body { margin:0; height:100%; overflow:hidden;
       e.preventDefault();
     };
     const onUp = () => { dragging = false; };
-
     el.addEventListener('mousedown', onDown);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     el.addEventListener('touchstart', onDown, { passive: false });
     window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onUp);
+    el.addEventListener('touchend', onUp);
     el.addEventListener('wheel', (e) => {
       ensureAudio();
       e.preventDefault();
@@ -2383,31 +3274,11 @@ html, body { margin:0; height:100%; overflow:hidden;
     }, { passive: false });
   }
 
-  // =========================================================
-  // Init
-  // =========================================================
-  function fmtLat(lat) {
-    const h = lat >= 0 ? 'N' : 'S';
-    const a = Math.abs(lat);
-    const d = Math.floor(a);
-    const m = (a - d) * 60;
-    return `${String(d).padStart(2,'0')}°${m.toFixed(1).padStart(4,'0')}′${h}`;
-  }
-  function fmtLon(lon) {
-    const h = lon >= 0 ? 'E' : 'W';
-    const a = Math.abs(lon);
-    const d = Math.floor(a);
-    const m = (a - d) * 60;
-    return `${String(d).padStart(2,'0')}°${m.toFixed(1).padStart(4,'0')}′${h}`;
-  }
-
   let initialised = false;
-
   function init() {
     if (initialised) return;
     initialised = true;
 
-    // Channel buttons
     $('vhf-keys').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
@@ -2415,16 +3286,12 @@ html, body { margin:0; height:100%; overflow:hidden;
       if (radio.scanning) stopScan();
       setChannel(parseInt(btn.dataset.ch, 10));
     });
-
-    // Volume knob
     makeKnob($('vol-dial'), () => radio.volume, (v) => {
       radio.volume = v;
       $('vol-v').textContent = v;
       $('vol-dial').style.setProperty('--angle', ((v - 50) * 3.6) + 'deg');
       if ('speechSynthesis' in window) speechSynthesis.cancel();
     });
-
-    // Squelch knob
     makeKnob($('sql-dial'), () => radio.squelch, (v) => {
       radio.squelch = v;
       $('sql-v').textContent = v;
@@ -2432,7 +3299,6 @@ html, body { margin:0; height:100%; overflow:hidden;
       updateStatus();
     });
 
-    // PTT
     const ptt = $('ptt-btn');
     ptt.addEventListener('mousedown', (e) => { e.preventDefault(); ensureAudio(); startPTT(); });
     ptt.addEventListener('mouseup', stopPTT);
@@ -2441,13 +3307,10 @@ html, body { margin:0; height:100%; overflow:hidden;
     ptt.addEventListener('touchend', stopPTT);
     ptt.addEventListener('touchcancel', stopPTT);
 
-    // Scan
     $('scan-btn').addEventListener('click', () => {
       ensureAudio();
       radio.scanning ? stopScan() : startScan();
     });
-
-    // Mute
     $('mute-btn').addEventListener('click', () => {
       muted = !muted;
       if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
@@ -2455,21 +3318,16 @@ html, body { margin:0; height:100%; overflow:hidden;
       $('mute-btn').classList.toggle('on', muted);
       updateStaticHum();
     });
-
-    // DSC
     $('dsc-btn').addEventListener('click', () => {
       ensureAudio();
       if (dscSent) return;
       armDsc();
     });
-
-    // Log clear
     $('vhf-log-clear').addEventListener('click', () => {
       radio.log.length = 0;
       renderLog();
     });
 
-    // Initial UI state
     $('vhf-ch').innerHTML = radio.ch + ' <small>CHANNEL</small>';
     [...$('vhf-keys').children].forEach(b =>
       b.classList.toggle('active', parseInt(b.dataset.ch, 10) === radio.ch));
@@ -2482,36 +3340,662 @@ html, body { margin:0; height:100%; overflow:hidden;
     scheduleChatter();
   }
 
-  // Hook into game start
   window.addEventListener('bridge:started', init);
   if (window.__isGameStarted && window.__isGameStarted()) init();
 
-  // Keyboard: T = PTT, V = scan
   window.addEventListener('keydown', (e) => {
     if (!window.__isGameStarted || !window.__isGameStarted()) return;
     if (!initialised) return;
     const lk = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-
-    if (lk === 't') {
-      ensureAudio();
-      if (!radio.ptt) startPTT();
-      e.preventDefault();
-      return;
-    }
-    if (lk === 'v') {
-      ensureAudio();
-      radio.scanning ? stopScan() : startScan();
-      e.preventDefault();
-      return;
-    }
+    if (lk === 't') { ensureAudio(); if (!radio.ptt) startPTT(); e.preventDefault(); return; }
+    if (lk === 'v') { ensureAudio(); radio.scanning ? stopScan() : startScan(); e.preventDefault(); return; }
   });
   window.addEventListener('keyup', (e) => {
     const lk = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (lk === 't') stopPTT();
   });
 
-  // Expose for console debug
   window.__radio = radio;
+})();
+
+/* =========================================================================
+   8. ECDIS overlay
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const map = window.__shipMap;
+
+  let on = false, ecdisReady = false;
+  const RANGE_RINGS_NM = [0.5, 1, 2, 5];
+  const VECTOR_MIN = 6;
+
+  function haversineDest(lat, lon, brgDeg, distNm) {
+    const R = 3440.065;
+    const brg = brgDeg * Math.PI / 180;
+    const lat1 = lat * Math.PI / 180;
+    const lon1 = lon * Math.PI / 180;
+    const dr = distNm / R;
+    const lat2 = Math.asin(Math.sin(lat1) * Math.cos(dr) +
+                           Math.cos(lat1) * Math.sin(dr) * Math.cos(brg));
+    const lon2 = lon1 + Math.atan2(Math.sin(brg) * Math.sin(dr) * Math.cos(lat1),
+                                   Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2));
+    return { lat: lat2 * 180 / Math.PI, lon: ((lon2 * 180 / Math.PI + 540) % 360) - 180 };
+  }
+
+  function circleGeoJSON(cLat, cLon, radiusNm, steps = 72) {
+    const coords = [];
+    for (let i = 0; i <= steps; i++) {
+      const brg = (i * 360) / steps;
+      const p = haversineDest(cLat, cLon, brg, radiusNm);
+      coords.push([p.lon, p.lat]);
+    }
+    return coords;
+  }
+
+  function addSources() {
+    if (ecdisReady) return;
+    ecdisReady = true;
+    map.addSource('ecdis-rings', {
+      type: 'geojson', data: { type: 'FeatureCollection', features: [] }
+    });
+    map.addLayer({
+      id: 'ecdis-rings-line', type: 'line', source: 'ecdis-rings',
+      paint: { 'line-color': '#4fd6ff', 'line-width': 1, 'line-opacity': 0.4,
+               'line-dasharray': [2, 3] }
+    });
+    map.addSource('ecdis-own-vector', {
+      type: 'geojson',
+      data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } }
+    });
+    map.addLayer({
+      id: 'ecdis-own-vector-line', type: 'line', source: 'ecdis-own-vector',
+      paint: { 'line-color': '#4fd6ff', 'line-width': 2, 'line-opacity': 0.85 }
+    });
+    map.addSource('ecdis-ais-vectors', {
+      type: 'geojson', data: { type: 'FeatureCollection', features: [] }
+    });
+    map.addLayer({
+      id: 'ecdis-ais-vectors-line', type: 'line', source: 'ecdis-ais-vectors',
+      paint: { 'line-color': '#ffd166', 'line-width': 1.5, 'line-opacity': 0.7 }
+    });
+  }
+
+  function setVisible(v) {
+    const vis = v ? 'visible' : 'none';
+    ['ecdis-rings-line', 'ecdis-own-vector-line', 'ecdis-ais-vectors-line']
+      .forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
+    $('ecdis-panel').classList.toggle('on', v);
+  }
+
+  function updateOverlay() {
+    if (!on || !ecdisReady) return;
+    const own = window.__ship;
+    if (!own) return;
+    const rings = {
+      type: 'FeatureCollection',
+      features: RANGE_RINGS_NM.map(r => ({
+        type: 'Feature', properties: { r },
+        geometry: { type: 'LineString', coordinates: circleGeoJSON(own.lat, own.lon, r, 96) }
+      }))
+    };
+    map.getSource('ecdis-rings').setData(rings);
+
+    const vecDist = (Math.abs(own.sog) * VECTOR_MIN) / 60;
+    const tip = haversineDest(own.lat, own.lon, own.cog, vecDist);
+    map.getSource('ecdis-own-vector').setData({
+      type: 'Feature', properties: {},
+      geometry: { type: 'LineString', coordinates: [[own.lon, own.lat], [tip.lon, tip.lat]] }
+    });
+
+    const traffic = window.__traffic;
+    if (traffic) {
+      const feats = traffic.ships.map(s => {
+        const d = (Math.abs(s.sog) * VECTOR_MIN) / 60;
+        const t = haversineDest(s.lat, s.lon, s.heading, d);
+        return {
+          type: 'Feature', properties: { name: s.name },
+          geometry: { type: 'LineString', coordinates: [[s.lon, s.lat], [t.lon, t.lat]] }
+        };
+      });
+      map.getSource('ecdis-ais-vectors').setData({ type: 'FeatureCollection', features: feats });
+    }
+
+    $('ec-sog').textContent = Math.abs(own.sog).toFixed(1) + ' kn';
+    $('ec-cog').textContent = String(Math.round(own.cog)).padStart(3,'0') + '°';
+    $('ec-nearest').textContent = own.cpa < 900 ? own.cpa.toFixed(1) + ' nm' : '—';
+  }
+
+  function toggle() {
+    if (!window.__isGameStarted || !window.__isGameStarted()) return;
+    on = !on;
+    $('t-ecdis').classList.toggle('active', on);
+    $('t-ecdis').querySelector('span:last-child').textContent = on ? 'ECDIS: ON' : 'ECDIS';
+    if (!ecdisReady && on) addSources();
+    if (ecdisReady) setVisible(on);
+  }
+  $('t-ecdis').addEventListener('click', toggle);
+
+  map.on('mousemove', (e) => {
+    if (!on) return;
+    const own = window.__ship;
+    if (!own) return;
+    const t = e.lngLat;
+    const d = window.__traffic.distanceNm(own.lat, own.lon, t.lat, t.lng);
+    let brg = Math.atan2(
+      Math.sin((t.lng - own.lon) * Math.PI/180) * Math.cos(t.lat * Math.PI/180),
+      Math.cos(own.lat * Math.PI/180) * Math.sin(t.lat * Math.PI/180) -
+      Math.sin(own.lat * Math.PI/180) * Math.cos(t.lat * Math.PI/180) * Math.cos((t.lng - own.lon) * Math.PI/180)
+    ) * 180 / Math.PI;
+    brg = (brg + 360) % 360;
+    const coastDist = window.__coast && window.__coast.isReady()
+      ? window.__coast.nearestNm(t.lat, t.lng) : null;
+    $('ec-lat').textContent = window.__fmtLat(t.lat);
+    $('ec-lon').textContent = window.__fmtLon(t.lng);
+    $('ec-brg').textContent = brg.toFixed(1) + '°';
+    $('ec-rng').textContent = d.toFixed(2) + ' nm';
+    $('ec-coast').textContent = coastDist != null && coastDist < 900
+      ? coastDist.toFixed(2) + ' nm' : '—';
+  });
+
+  $('ec-mob').addEventListener('click', () => {
+    const own = window.__ship;
+    if (!own) return;
+    const el = document.createElement('div');
+    el.className = 'event-marker mob';
+    el.textContent = 'MOB';
+    new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([own.lon, own.lat]).addTo(map);
+    window.__radioLog && window.__radioLog('dsc',
+      `MOB marker at ${window.__fmtLat(own.lat)} ${window.__fmtLon(own.lon)}.`);
+    const msg = `Pan pan, pan pan, pan pan. All stations, ${own.name} reports man overboard at position ${window.__fmtLat(own.lat)} ${window.__fmtLon(own.lon)}. Assistance requested.`;
+    window.__radioLog && window.__radioLog('tx', `"${msg}"`);
+  });
+
+  function loop() { updateOverlay(); requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+})();
+
+/* =========================================================================
+   9. RANDOM EVENTS
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const map = window.__shipMap;
+
+  function cardinalEl(dir) {
+    const el = document.createElement('div');
+    el.className = 'event-marker cardinal-' + dir;
+    el.textContent = dir;
+    return el;
+  }
+  function safeWaterEl() {
+    const el = document.createElement('div');
+    el.className = 'event-marker safe'; el.textContent = '⊘';
+    return el;
+  }
+  function hazardEl() {
+    const el = document.createElement('div');
+    el.className = 'event-marker hazard'; el.textContent = '⚠';
+    return el;
+  }
+
+  function randomWaterPoint(minNm, maxNm) {
+    const own = window.__ship;
+    if (!own) return null;
+    for (let i = 0; i < 40; i++) {
+      const brg = Math.random() * 360;
+      const dist = minNm + Math.random() * (maxNm - minNm);
+      const rad = brg * Math.PI / 180;
+      const dDeg = dist / 60;
+      const lat = own.lat + dDeg * Math.cos(rad);
+      const lon = own.lon + dDeg * Math.sin(rad) / Math.cos(own.lat * Math.PI/180);
+      const coast = window.__coast && window.__coast.isReady()
+        ? window.__coast.nearestNm(lat, lon) : 999;
+      if (coast > 0.4) return { lat, lon };
+    }
+    return null;
+  }
+
+  const EVENT_TYPES = [
+    { id: 'cardinal-N', weight: 3, run(p) {
+        new maplibregl.Marker({ element: cardinalEl('N'), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `Cardinal N mark sighted.`);
+    }},
+    { id: 'cardinal-E', weight: 2, run(p) {
+        new maplibregl.Marker({ element: cardinalEl('E'), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `East cardinal mark reported nearby.`);
+    }},
+    { id: 'cardinal-S', weight: 2, run(p) {
+        new maplibregl.Marker({ element: cardinalEl('S'), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `South cardinal mark sighted.`);
+    }},
+    { id: 'cardinal-W', weight: 2, run(p) {
+        new maplibregl.Marker({ element: cardinalEl('W'), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `West cardinal mark sighted.`);
+    }},
+    { id: 'safe-water', weight: 2, run(p) {
+        new maplibregl.Marker({ element: safeWaterEl(), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `Safe water mark sighted.`);
+    }},
+    { id: 'hazard', weight: 2, run(p) {
+        new maplibregl.Marker({ element: hazardEl(), anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+        window.__radioLog('evt', `Isolated danger mark reported — do not approach.`);
+    }},
+    { id: 'mayday', weight: 1, run(p) {
+        const msg = `Mayday, mayday, mayday. This is sailing yacht Aquila. Position ${window.__fmtLat(p.lat)} ${window.__fmtLon(p.lon)}. We are taking on water, four persons on board. Request immediate assistance. Over.`;
+        window.__radioLog('dsc', '◉ MAYDAY received on CH 16.');
+        window.__radioLog('rx', `Sailing yacht Aquila: "${msg}"`);
+        if (window.__speakExternal) window.__speakExternal('Aquila', msg);
+    }},
+    { id: 'panpan', weight: 2, run(p) {
+        window.__radioLog('evt', `Pan-pan: small fishing vessel disabled 5 nm NW.`);
+    }},
+    { id: 'debris', weight: 2, run(p) {
+        window.__radioLog('evt', `Navigational warning: floating container adrift.`);
+    }},
+    { id: 'squall', weight: 2, run(p) {
+        window.__radioLog('evt', `Squall line approaching from the west. Reduce speed.`);
+    }},
+    { id: 'fishing-fleet', weight: 1, run(p) {
+        window.__radioLog('evt', `Fishing fleet operating 4 nm south. Give way.`);
+    }},
+    { id: 'shoal', weight: 3, run(p) {
+        window.__radioLog('evt', `Shoal reported. Mariners advised to keep clear.`);
+        const el = document.createElement('div');
+        el.className = 'event-marker hazard';
+        el.textContent = '≈';
+        new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([p.lon, p.lat]).addTo(map);
+    }}
+  ];
+
+  const TOTAL_WEIGHT = EVENT_TYPES.reduce((a, t) => a + t.weight, 0);
+  function pickEvent() {
+    let r = Math.random() * TOTAL_WEIGHT;
+    for (const t of EVENT_TYPES) {
+      r -= t.weight;
+      if (r <= 0) return t;
+    }
+    return EVENT_TYPES[0];
+  }
+
+  let timer = null;
+  function schedule() {
+    if (timer) clearTimeout(timer);
+    const delay = 45000 + Math.random() * 75000;
+    timer = setTimeout(() => {
+      if (!window.__isGameStarted || !window.__isGameStarted()) { schedule(); return; }
+      const ev = pickEvent();
+      const p = randomWaterPoint(2, 12);
+      if (p) {
+        try { ev.run(p); } catch (e) { console.warn('[EVT]', e); }
+      }
+      schedule();
+    }, delay);
+  }
+
+  window.addEventListener('bridge:started', () => {
+    window.__radioLog && window.__radioLog('sys', 'Event monitor active.');
+    schedule();
+  });
+
+  window.__fireEvent = () => {
+    const ev = pickEvent();
+    const p = randomWaterPoint(2, 8);
+    if (p) ev.run(p);
+  };
+})();
+
+/* =========================================================================
+   10. LIVE WEATHER — Open-Meteo
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const shipRef = window.__ship;
+
+  const wx = {
+    windSpd: shipRef ? shipRef.windSpd : 18,
+    windDir: shipRef ? shipRef.windDir : 245,
+    windGust: 0,
+    wave: shipRef ? shipRef.wave : 1.4,
+    waveDir: 220, wavePeriod: 6.5,
+    swell: 0.9, swellDir: 200,
+    currentSpd: 0, currentDir: 0,
+    water: shipRef ? shipRef.water : 16.8,
+    air: shipRef ? shipRef.air : 18.4,
+    humidity: shipRef ? shipRef.humidity : 72,
+    baro: shipRef ? shipRef.baro : 1014.2,
+    status: 'idle', lastUpdate: 0, lastError: null
+  };
+  window.__weather = wx;
+
+  const REFRESH_MS = 10 * 60 * 1000;
+  const RETRY_MS   = 2 * 60 * 1000;
+  let timer = null;
+
+  function setPill(state, text) {
+    const pill = $('wx-pill');
+    if (!pill) return;
+    pill.className = 'pill wx ' + state;
+    pill.textContent = text;
+  }
+  function applyMarine(json) {
+    const c = json && json.current;
+    if (!c) return false;
+    if (typeof c.wave_height === 'number')              wx.wave = c.wave_height;
+    if (typeof c.wave_direction === 'number')           wx.waveDir = c.wave_direction;
+    if (typeof c.wave_period === 'number')              wx.wavePeriod = c.wave_period;
+    if (typeof c.swell_wave_height === 'number')        wx.swell = c.swell_wave_height;
+    if (typeof c.swell_wave_direction === 'number')     wx.swellDir = c.swell_wave_direction;
+    if (typeof c.ocean_current_velocity === 'number')   wx.currentSpd = c.ocean_current_velocity * 0.539957;
+    if (typeof c.ocean_current_direction === 'number')  wx.currentDir = c.ocean_current_direction;
+    if (typeof c.sea_surface_temperature === 'number')  wx.water = c.sea_surface_temperature;
+    return true;
+  }
+  function applyAtmos(json) {
+    const c = json && json.current;
+    if (!c) return false;
+    if (typeof c.temperature_2m === 'number')       wx.air = c.temperature_2m;
+    if (typeof c.relative_humidity_2m === 'number') wx.humidity = c.relative_humidity_2m;
+    if (typeof c.pressure_msl === 'number')         wx.baro = c.pressure_msl;
+    if (typeof c.wind_speed_10m === 'number')       wx.windSpd = c.wind_speed_10m;
+    if (typeof c.wind_direction_10m === 'number')   wx.windDir = c.wind_direction_10m;
+    if (typeof c.wind_gusts_10m === 'number')       wx.windGust = c.wind_gusts_10m;
+    return true;
+  }
+  async function fetchWeather(lat, lon) {
+    if (wx.status === 'loading') return;
+    wx.status = 'loading';
+    setPill('loading', '◌ WX …');
+    const marineUrl =
+      'https://marine-api.open-meteo.com/v1/marine?latitude=' + lat.toFixed(4) +
+      '&longitude=' + lon.toFixed(4) +
+      '&current=wave_height,wave_direction,wave_period,' +
+              'swell_wave_height,swell_wave_direction,swell_wave_period,' +
+              'ocean_current_velocity,ocean_current_direction,' +
+              'sea_surface_temperature';
+    const atmosUrl =
+      'https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(4) +
+      '&longitude=' + lon.toFixed(4) +
+      '&current=temperature_2m,relative_humidity_2m,pressure_msl,' +
+              'wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
+      '&wind_speed_unit=kn';
+    try {
+      const [mRes, aRes] = await Promise.all([fetch(marineUrl), fetch(atmosUrl)]);
+      if (!mRes.ok || !aRes.ok) throw new Error('HTTP');
+      const [mJson, aJson] = await Promise.all([mRes.json(), aRes.json()]);
+      applyMarine(mJson); applyAtmos(aJson);
+      wx.status = 'live'; wx.lastUpdate = Date.now();
+      setPill('live', '● WX LIVE');
+      scheduleNext(REFRESH_MS);
+    } catch (e) {
+      wx.status = 'error'; wx.lastError = String(e);
+      setPill('error', '✕ WX');
+      scheduleNext(RETRY_MS);
+    }
+  }
+  function scheduleNext(ms) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      const sp = window.__ship;
+      if (sp) fetchWeather(sp.lat, sp.lon);
+    }, ms);
+  }
+  window.addEventListener('bridge:started', () => {
+    const sp = window.__ship;
+    if (!sp) return;
+    fetchWeather(sp.lat, sp.lon);
+  });
+  window.__weatherRefresh = () => {
+    const sp = window.__ship;
+    if (sp) fetchWeather(sp.lat, sp.lon);
+  };
+  setPill('loading', '◌ WX');
+})();
+
+/* =========================================================================
+   11. External speak helper
+   ========================================================================= */
+(() => {
+  window.__speakExternal = (name, text) => {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.92; u.pitch = 0.85;
+      u.volume = Math.min(1, (window.__radio && window.__radio.volume || 65) / 100);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  };
+})();
+
+/* =========================================================================
+   12. VOYAGE — Autopilot, Anchor, Ports, Arrival, Day/night
+   ========================================================================= */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const D2R = Math.PI / 180;
+  const R2D = 180 / Math.PI;
+
+  const PORTS = [
+    { name: 'GENOVA',        lat: 44.4072, lon:  8.9340 },
+    { name: 'LIVORNO',       lat: 43.5513, lon: 10.3080 },
+    { name: 'CIVITAVECCHIA', lat: 42.0942, lon: 11.7960 },
+    { name: 'NAPOLI',        lat: 40.8400, lon: 14.2520 },
+    { name: 'PALERMO',       lat: 38.1255, lon: 13.3680 },
+    { name: 'MESSINA',       lat: 38.1938, lon: 15.5540 },
+    { name: 'CAGLIARI',      lat: 39.2140, lon:  9.1100 },
+    { name: 'MARSEILLE',     lat: 43.2951, lon:  5.3740 },
+    { name: 'BARCELONA',     lat: 41.3540, lon:  2.1740 },
+    { name: 'VALENCIA',      lat: 39.4597, lon: -0.3197 },
+    { name: 'VALLETTA',      lat: 35.8990, lon: 14.5140 },
+    { name: 'TUNIS',         lat: 36.8065, lon: 10.1815 },
+    { name: 'PIRAEUS',       lat: 37.9430, lon: 23.6470 },
+    { name: 'ISTANBUL',      lat: 41.0082, lon: 28.9784 },
+    { name: 'ALEXANDRIA',    lat: 31.2001, lon: 29.9187 }
+  ];
+
+  function havNm(lat1, lon1, lat2, lon2) {
+    const R = 3440.065;
+    const dLat = (lat2 - lat1) * D2R;
+    const dLon = (lon2 - lon1) * D2R;
+    const a = Math.sin(dLat/2)**2 +
+              Math.cos(lat1*D2R) * Math.cos(lat2*D2R) * Math.sin(dLon/2)**2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  const sel = $('dest-select');
+  PORTS.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+
+  let destination = null;
+
+  sel.addEventListener('change', () => {
+    const v = sel.value;
+    if (v === '') { destination = null; return; }
+    destination = PORTS[parseInt(v, 10)];
+    const sh = window.__ship;
+    const d = havNm(sh.lat, sh.lon, destination.lat, destination.lon);
+    window.__radioLog && window.__radioLog('sys',
+      `Destination set: ${destination.name} · ${d.toFixed(1)} nm`);
+    const el = $('voyage-to');
+    if (el) el.textContent = destination.name;
+  });
+
+  let autopilotMode = 'hand';
+  let anchored = false;
+  let anchor = null;
+
+  const apBtns = document.querySelectorAll('#ap-ctrl button');
+  apBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.ap;
+      if (k === 'track') {
+        if (!destination && (!window.__waypoints || window.__waypoints.length === 0)) {
+          window.__radioLog && window.__radioLog('sys', 'No destination or waypoints set.');
+          return;
+        }
+        autopilotMode = 'track';
+        anchored = false;
+        anchor = null;
+        window.__radioLog && window.__radioLog('sys', 'Autopilot: TRACK engaged.');
+      } else if (k === 'hand') {
+        autopilotMode = 'hand';
+        window.__radioLog && window.__radioLog('sys', 'Autopilot: HAND steering.');
+      } else if (k === 'anchor') {
+        if (anchored) {
+          anchored = false;
+          anchor = null;
+          window.__radioLog && window.__radioLog('sys', 'Anchor weighed.');
+        } else {
+          anchored = true;
+          autopilotMode = 'hand';
+          const sh = window.__ship;
+          anchor = { lat: sh.lat, lon: sh.lon, rodeM: 150 };
+          window.__radioLog && window.__radioLog('sys', 'Anchor dropped.');
+        }
+      }
+      updateApButtons();
+    });
+  });
+
+  function updateApButtons() {
+    apBtns.forEach(btn => {
+      const k = btn.dataset.ap;
+      let on = false;
+      if (k === 'track')  on = autopilotMode === 'track' && !anchored;
+      if (k === 'hand')   on = autopilotMode === 'hand'  && !anchored;
+      if (k === 'anchor') on = anchored;
+      btn.classList.toggle('active', on);
+      if (k === 'anchor') btn.classList.toggle('anchor', anchored);
+    });
+    const sh = window.__ship;
+    if (sh) sh.autopilot = anchored ? 'ANCHOR'
+                            : (autopilotMode === 'track' ? 'TRACK' : 'MANUAL');
+  }
+  updateApButtons();
+
+  let arrived = false;
+  $('arr-continue').addEventListener('click', () => {
+    $('arrived').classList.add('hidden');
+    arrived = false;
+    destination = null;
+    sel.value = '';
+    const el = $('voyage-to');
+    if (el) el.textContent = 'NAPLES';
+  });
+
+  function checkArrival() {
+    if (arrived || !destination) return;
+    const sh = window.__ship;
+    const d = havNm(sh.lat, sh.lon, destination.lat, destination.lon);
+    if (d < 2.0) {
+      arrived = true;
+      $('arr-name').textContent = destination.name;
+      $('arrived').classList.remove('hidden');
+      window.__radioLog && window.__radioLog('sys', `Arrived at ${destination.name}.`);
+    }
+  }
+
+  function updateDayNight() {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+    let darkness = 0;
+    if (hour >= 7 && hour < 18)       darkness = 0;
+    else if (hour >= 5 && hour < 7)   darkness = (7 - hour) / 2;
+    else if (hour >= 18 && hour < 20) darkness = (hour - 18) / 2;
+    else                              darkness = 1;
+    const alpha = darkness * 0.42;
+    const el = $('daynight');
+    if (el) el.style.background = `rgba(6, 20, 45, ${alpha})`;
+  }
+  updateDayNight();
+
+  let lastT = performance.now();
+  function tickVoyage() {
+    const now = performance.now();
+    const dt = Math.min((now - lastT) / 1000, 0.5);
+    lastT = now;
+
+    if (!window.__isGameStarted || !window.__isGameStarted()) {
+      requestAnimationFrame(tickVoyage);
+      return;
+    }
+
+    const sh = window.__ship;
+
+    // Anchor physics
+    if (anchored && anchor) {
+      sh.telegraph = 'STOP';
+      sh.rpmTarget = 0;
+
+      const dx = (anchor.lon - sh.lon) * Math.cos(sh.lat * D2R);
+      const dy = anchor.lat - sh.lat;
+      const distDeg = Math.sqrt(dx*dx + dy*dy);
+      const distNm = distDeg * 60;
+      const rodeNm = anchor.rodeM / 1852;
+
+      if (distNm > rodeNm) {
+        const errNm = distNm - rodeNm;
+        const pullSpeed = Math.min(errNm * 1.5, 0.15);
+        const pullDeg = (pullSpeed * dt) / 60;
+        const rx = dx / (distDeg || 1e-9);
+        const ry = dy / (distDeg || 1e-9);
+        sh.lat += ry * pullDeg;
+        sh.lon += rx * pullDeg / Math.cos(sh.lat * D2R);
+      }
+      sh.heading += Math.sin(now / 3000) * 0.01;
+    }
+
+    // Waypoint advance when TRACK and no destination
+    if (autopilotMode === 'track' && !anchored && !destination &&
+        window.__waypoints && window.__waypoints.length > 0) {
+      const wp = window.__waypoints[0];
+      const d = havNm(sh.lat, sh.lon, wp.lat, wp.lng);
+      if (d < 0.4) {
+        wp.marker.remove();
+        window.__waypoints.shift();
+        window.__waypoints.forEach((w, i) => {
+          w.marker.getElement().textContent = String(i + 1);
+        });
+        window.__radioLog && window.__radioLog('sys', 'Waypoint reached.');
+      }
+    }
+
+    checkArrival();
+
+    if (!tickVoyage._lastDn || now - tickVoyage._lastDn > 5000) {
+      tickVoyage._lastDn = now;
+      updateDayNight();
+    }
+
+    requestAnimationFrame(tickVoyage);
+  }
+  requestAnimationFrame(tickVoyage);
+
+  window.__voyage = {
+    get destination() { return destination; },
+    get anchored()    { return anchored; },
+    get autopilot()   { return autopilotMode; },
+    ports: PORTS
+  };
 })();
 </script>
 </body>
