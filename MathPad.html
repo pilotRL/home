@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Math Notepad</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    font-size:14px; color:#1a1a1a; background:#fbfaf7; -webkit-font-smoothing:antialiased; }
+  body { display: flex; flex-direction: column; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+
+  #topbar { flex:0 0 46px; height:46px; display:flex; align-items:center; padding:0 12px; gap:6px;
+    background:#fff; border-bottom:1px solid #e8e5dd; position:relative; z-index:20; }
+  #topbar .logo { font-weight:700; color:#1a3a7a; font-size:15px; margin-right:6px; white-space:nowrap; }
+  #formulasBtn { padding:7px 14px; border-radius:8px; background:#1a3a7a; color:#fff;
+    font-size:13px; font-weight:600; transition:background .12s; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:6px; }
+  #formulasBtn:hover { background:#244a8e; }
+  #formulasBtn .count { background:rgba(255,255,255,.22); padding:1px 6px; border-radius:4px; font-size:11px; }
+  #topbar select { padding:6px 10px; border-radius:6px; border:1px solid #e0dcd0; background:#faf9f6;
+    font-size:13px; color:inherit; cursor:pointer; max-width:160px; outline:none; }
+  #topbar select:focus { border-color:#1a3a7a; }
+  #topbar .iconbtn { padding:6px 9px; border-radius:6px; color:#6a6a6a; font-size:14px; line-height:1;
+    transition:background .12s; }
+  #topbar .iconbtn:hover { background:#f0ede5; color:#1a1a1a; }
+  #topbar .spacer { flex:1; min-width:4px; }
+  #topbar .actions { display:flex; gap:2px; flex-wrap:nowrap; }
+  #topbar .actions button { padding:7px 10px; border-radius:6px; font-size:12px; color:#4a4a4a;
+    transition:background .12s, color .12s; font-weight:500; white-space:nowrap; }
+  #topbar .actions button:hover { background:#f0ede5; color:#1a3a7a; }
+
+  #toolbar { flex:0 0 44px; height:44px; display:flex; align-items:center; padding:0 6px;
+    background:#faf9f6; border-bottom:1px solid #e8e5dd; overflow-x:auto; overflow-y:hidden;
+    position:relative; z-index:15; scrollbar-width:thin; }
+  #toolbar::-webkit-scrollbar { height:5px; }
+  #toolbar::-webkit-scrollbar-thumb { background:#ddd8cc; border-radius:4px; }
+  #toolbar .group { display:flex; align-items:center; gap:1px; padding:0 6px; height:30px;
+    border-right:1px solid #ebe7dd; flex-shrink:0; }
+  #toolbar .group:last-child { border-right:none; }
+  #toolbar button { min-width:30px; height:28px; padding:0 7px; border-radius:5px; font-size:14px;
+    color:#3a3a3a; display:inline-flex; align-items:center; justify-content:center;
+    transition:background .1s, color .1s; white-space:nowrap;
+    font-family:'Times New Roman','Latin Modern Math','Cambria Math',serif; }
+  #toolbar button:hover { background:#ebe7dd; color:#1a3a7a; }
+  #toolbar button:active { background:#ddd8cc; }
+
+  #formulaPicker { position:absolute; top:90px; left:0; right:0; bottom:0; background:#fbfaf7;
+    border-top:1px solid #e8e5dd; display:none; flex-direction:column; z-index:100; }
+  #formulaPicker.open { display:flex; }
+  .fp-head { display:flex; gap:10px; align-items:center; padding:12px 16px; background:#fff;
+    border-bottom:1px solid #e8e5dd; flex-shrink:0; }
+  #fpSearch { flex:1; padding:9px 14px; border-radius:8px; border:1px solid #e0dcd0; font-size:13px;
+    background:#faf9f6; outline:none; transition:border-color .12s, background .12s; }
+  #fpSearch:focus { border-color:#1a3a7a; background:#fff; }
+  #fpClose { padding:9px 14px; border-radius:8px; color:#6a6a6a; font-size:14px; line-height:1;
+    transition:background .12s, color .12s; flex-shrink:0; }
+  #fpClose:hover { background:#f0ede5; color:#1a1a1a; }
+  .fp-body { flex:1; overflow-y:auto; padding:8px 16px 24px; scrollbar-width:thin; }
+  .fp-body::-webkit-scrollbar { width:8px; }
+  .fp-body::-webkit-scrollbar-thumb { background:#ddd8cc; border-radius:4px; }
+  .fp-group { margin-top:18px; }
+  .fp-group:first-child { margin-top:6px; }
+  .fp-group-title { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#a8a293;
+    font-weight:700; margin:0 0 10px 4px; }
+  .fp-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:8px; }
+  .fp-card { background:#fff; border:1px solid #e8e5dd; border-radius:10px; padding:14px 12px 10px;
+    cursor:pointer; transition:border-color .12s, box-shadow .12s, transform .08s;
+    display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;
+    min-height:96px; overflow:hidden; }
+  .fp-card:hover { border-color:#1a3a7a; box-shadow:0 6px 18px rgba(26,58,122,.10); transform:translateY(-1px); }
+  .fp-card:active { transform:translateY(0); }
+  .fp-card .preview { color:#1a1a1a; font-size:15px; overflow-x:auto; overflow-y:hidden;
+    max-width:100%; white-space:nowrap; padding:2px 4px; pointer-events:none; }
+  .fp-card .name { font-size:10.5px; color:#9a9a9a; letter-spacing:.02em; text-align:center; line-height:1.3; }
+  .fp-empty { text-align:center; color:#a8a293; padding:60px 20px; font-style:italic; font-size:13px; }
+
+  #viewport { flex:1 1 auto; min-height:0; min-width:0; position:relative; overflow:hidden;
+    background-color:#fbfaf7; cursor:crosshair; touch-action:none;
+    background-image: linear-gradient(to right, rgba(26,58,122,0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(26,58,122,0.055) 1px, transparent 1px);
+    background-size: 32px 32px; }
+  #viewport.panning { cursor:grabbing; }
+  #viewport.panning * { cursor:grabbing !important; }
+  #world { position:absolute; top:0; left:0; width:0; height:0; transform-origin:0 0; will-change:transform; }
+
+  .math-box { position:absolute; padding:10px 16px; border-radius:6px; border:1px solid transparent;
+    background:transparent; cursor:move; min-height:34px;
+    transition:background .12s, border-color .12s, box-shadow .12s; line-height:1; user-select:none; }
+  .math-box:hover { background:rgba(255,255,255,.72); border-color:#e0dcd0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+  .math-box.selected { background:rgba(255,255,255,.9); border-color:#1a3a7a; box-shadow:0 0 0 3px rgba(26,58,122,.10); }
+  .math-box.editing { background:#fff; border-color:#1a3a7a; box-shadow:0 8px 32px rgba(0,0,0,.12);
+    cursor:default; padding:10px; z-index:5; }
+  .math-box.image-box { padding:6px; }
+  .math-box.image-box .box-content { display:block; line-height:0; }
+  .math-box img { display:block; width:100%; height:auto; border-radius:4px; pointer-events:none; user-select:none; }
+  .math-box .box-content { pointer-events:none; user-select:none; }
+  .math-box.editing .box-content { pointer-events:auto; user-select:auto; }
+  .math-box .katex-display { margin:0; }
+  .math-box .katex-display > .katex { text-align:left; }
+
+  .math-box:not(.editing) .box-content .mv { pointer-events:auto; cursor:pointer; border-radius:3px;
+    padding:0 1px; margin:0 -1px; transition:background .12s, box-shadow .12s; position:relative; }
+  .math-box:not(.editing) .box-content .mv:hover { background:rgba(255,200,0,0.34);
+    box-shadow:0 0 0 1px rgba(255,170,0,0.55); }
+  .math-box:not(.editing) .box-content .mv[contenteditable="true"] { background:#fff8d0 !important;
+    box-shadow:0 0 0 2px #1a3a7a !important; cursor:text; padding:0 4px; margin:0 -4px; outline:none;
+    min-width:12px; display:inline-block; text-align:center; }
+
+  .box-controls { position:absolute; top:-32px; right:0; display:none; gap:1px; background:#fff;
+    border:1px solid #e0dcd0; border-radius:7px; padding:3px; box-shadow:0 4px 12px rgba(0,0,0,.08); z-index:20; }
+  .math-box:hover > .box-controls, .math-box.selected > .box-controls, .math-box.editing > .box-controls { display:flex; }
+  .box-controls > button { width:26px; height:26px; border-radius:5px; display:flex; align-items:center;
+    justify-content:center; color:#6a6a6a; font-size:13px; line-height:1; transition:background .1s, color .1s; }
+  .box-controls > button:hover { background:#f0ede5; color:#1a3a7a; }
+  .box-controls > button.danger:hover { background:#fce8e6; color:#c0392b; }
+  .box-controls > button.ctrl-size { font-family:'Times New Roman',serif; font-weight:700; font-size:15px;
+    letter-spacing:-0.5px; }
+
+  .color-popover, .size-popover { position:absolute; top:100%; right:0; margin-top:5px; background:#fff;
+    border:1px solid #e0dcd0; border-radius:8px; padding:7px; display:flex; gap:5px;
+    box-shadow:0 6px 20px rgba(0,0,0,.12); z-index:30; }
+  .color-popover .swatch { width:22px; height:22px; border-radius:50%; border:2px solid transparent;
+    padding:0; transition:transform .1s, border-color .1s; }
+  .color-popover .swatch:hover { transform:scale(1.12); }
+  .color-popover .swatch.active { border-color:#1a3a7a; }
+  .size-popover { flex-direction:column; gap:3px; min-width:110px; }
+  .size-popover button { padding:6px 10px; border-radius:5px; font-size:12px; text-align:left;
+    color:#3a3a3a; transition:background .1s; display:flex; justify-content:space-between;
+    align-items:center; gap:8px; }
+  .size-popover button:hover { background:#f0ede5; }
+  .size-popover button.active { background:#e8eef8; color:#1a3a7a; font-weight:600; }
+  .size-popover .sample { font-family:'Times New Roman',serif; }
+
+  .resize-handle { position:absolute; bottom:0; right:0; width:18px; height:18px; cursor:nwse-resize;
+    opacity:0; transition:opacity .12s;
+    background: linear-gradient(135deg, transparent 40%, #b8b2a3 40%, #b8b2a3 48%,
+      transparent 48%, transparent 60%, #b8b2a3 60%, #b8b2a3 68%, transparent 68%); }
+  .math-box:hover > .resize-handle, .math-box.selected > .resize-handle { opacity:1; }
+
+  .edit-input { width:100%; min-height:56px; font-family:'SF Mono','Monaco','Consolas','Liberation Mono',monospace;
+    font-size:13px; line-height:1.55; border:1px solid #e8e5dd; border-radius:5px; padding:8px 10px;
+    background:#faf9f6; color:#1a1a1a; resize:vertical; outline:none; display:block;
+    transition:border-color .12s, background .12s; tab-size:2; }
+  .edit-input:focus { border-color:#1a3a7a; background:#fff; }
+  .edit-preview { margin-top:10px; padding-top:10px; border-top:1px dashed #e8e5dd; min-height:32px; overflow-x:auto; }
+  .edit-preview:empty::before { content:'preview appears here'; color:#c8c2b3; font-size:11px; font-style:italic; }
+  .edit-hint { font-size:11px; color:#a8a293; margin-top:6px; font-style:italic; }
+  .edit-hint kbd { font-family:inherit; background:#f0ede5; border:1px solid #e0dcd0; border-radius:3px;
+    padding:1px 5px; font-size:10px; color:#4a4a4a; font-style:normal; }
+
+  #tooltip { position:fixed; display:none; background:#fff; border:1px solid #e0dcd0; border-radius:7px;
+    padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.10); z-index:1000; pointer-events:none; font-size:15px; }
+  #tooltip .katex-display { margin:0; }
+
+  #loading { position:fixed; inset:0; background:#fbfaf7; display:flex; align-items:center;
+    justify-content:center; font-size:14px; color:#6a6a6a; z-index:9999; transition:opacity .25s; }
+  #loading.hidden { opacity:0; pointer-events:none; }
+
+  #dropzone { position:absolute; inset:0; background:rgba(26,58,122,.06); border:3px dashed #1a3a7a;
+    border-radius:8px; margin:8px; display:none; align-items:center; justify-content:center;
+    color:#1a3a7a; font-weight:600; font-size:15px; pointer-events:none; z-index:40; }
+  #dropzone.active { display:flex; }
+
+  .math-box .box-controls > button.ctrl-tex { width:auto; padding:0 6px; font-size:10px; font-weight:700; font-family:inherit; }
+  #zoomctl { position:absolute; right:14px; bottom:14px; display:flex; align-items:center; gap:2px; background:#fff;
+    border:1px solid #e0dcd0; border-radius:8px; padding:3px; box-shadow:0 4px 14px rgba(0,0,0,.08); z-index:30; cursor:default; }
+  #zoomctl button { min-width:28px; height:26px; padding:0 7px; border-radius:5px; font-size:13px; color:#4a4a4a; }
+  #zoomctl button:hover { background:#f0ede5; color:#1a3a7a; }
+  #zoomctl #zoomLabel { min-width:48px; font-size:12px; }
+  #toast { position:fixed; left:50%; bottom:64px; transform:translate(-50%,10px); background:#1a1a1a; color:#fff;
+    padding:8px 14px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:2000; max-width:90vw; }
+  #toast.show { opacity:1; transform:translate(-50%,0); }
+
+  @media print {
+    #topbar, #toolbar, .box-controls, .resize-handle, #tooltip, #loading, #dropzone, #formulaPicker, #zoomctl, #toast { display:none !important; }
+    body { background:#fff; }
+    #viewport { background:#fff !important; background-image:none !important; overflow:visible; }
+    .math-box { box-shadow:none !important; border-color:transparent !important; background:transparent !important; }
+    .math-box .box-content .mv[contenteditable="true"] { background:transparent !important; box-shadow:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">Loading Math Notepad…</div>
+
+<div id="topbar">
+  <span class="logo">∑ Math Notepad</span>
+  <button id="formulasBtn" title="Open formula library">∑ Formulas <span class="count" id="fpCount"></span></button>
+  <select id="boardSelect" title="Switch board"></select>
+  <button class="iconbtn" id="newBoard" title="New board">＋</button>
+  <button class="iconbtn" id="delBoard" title="Delete board">✕</button>
+  <button class="iconbtn" id="renameBoard" title="Rename board">✎</button>
+  <button class="iconbtn" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+  <button class="iconbtn" id="redoBtn" title="Redo (Ctrl+Y)">↷</button>
+  <div class="spacer"></div>
+  <div class="actions">
+    <button id="insertImage">Image</button>
+    <button id="exportPng">PNG</button>
+    <button id="exportJson">JSON ↓</button>
+    <button id="importJson">JSON ↑</button>
+    <button id="printBtn">Print</button>
+    <button id="helpBtn">?</button>
+  </div>
+</div>
+
+<div id="toolbar"></div>
+
+<div id="viewport">
+  <div id="world"></div>
+  <div id="dropzone">Drop image to place on canvas</div>
+  <div id="zoomctl"><button id="zoomOut" title="Zoom out">−</button><button id="zoomLabel" title="Reset zoom (Ctrl+0)">100%</button><button id="zoomIn" title="Zoom in">+</button><button id="zoomFit" title="Fit all formulas">Fit</button></div>
+  <div id="formulaPicker">
+    <div class="fp-head">
+      <input id="fpSearch" type="text" placeholder="Search formulas…  e.g. quadratic, pythagoras, sine, energy">
+      <button id="fpClose" title="Close (Esc)">✕</button>
+    </div>
+    <div class="fp-body" id="fpBody"></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+"use strict";
+
+const STORAGE_KEY = "mathnotepad.v7";
+const BASE_GRID   = 32;
+const SLOT        = "\\square";
+const SLOT_LEN    = SLOT.length;
+const BASE_FONT   = 22;
+const DEFAULT_FONT_SIZE = 1.15;
+const FONT_SIZES = [
+  [0.7,"Tiny"],[0.85,"Small"],[1.0,"Normal"],[1.15,"Medium"],
+  [1.4,"Large"],[1.75,"XL"],[2.2,"Huge"],[3.0,"Massive"],
+];
+
+const FORMULA_LIBRARY = [
+  { group: "Algebra", items: [
+    { name:"Quadratic formula",     latex:"x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
+    { name:"Difference of squares", latex:"a^2 - b^2 = (a - b)(a + b)" },
+    { name:"Perfect square",        latex:"(a + b)^2 = a^2 + 2ab + b^2" },
+    { name:"Slope",                 latex:"m = \\frac{y_2 - y_1}{x_2 - x_1}" },
+    { name:"Distance",              latex:"d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}" },
+    { name:"Midpoint",              latex:"M = \\left(\\frac{x_1 + x_2}{2},\\, \\frac{y_1 + y_2}{2}\\right)" },
+    { name:"Line (slope-intercept)",latex:"y = mx + b" },
+    { name:"Log of product",        latex:"\\log(xy) = \\log x + \\log y" },
+    { name:"Log of power",          latex:"\\log(x^n) = n\\log x" },
+  ]},
+  { group: "Geometry", items: [
+    { name:"Pythagoras",            latex:"a^2 + b^2 = c^2" },
+    { name:"Circle area",           latex:"A = \\pi r^2" },
+    { name:"Circle circumference",  latex:"C = 2\\pi r" },
+    { name:"Triangle area",         latex:"A = \\frac{1}{2}bh" },
+    { name:"Trapezoid area",        latex:"A = \\frac{a + b}{2}h" },
+    { name:"Sphere volume",         latex:"V = \\frac{4}{3}\\pi r^3" },
+    { name:"Sphere surface",        latex:"S = 4\\pi r^2" },
+    { name:"Cylinder volume",       latex:"V = \\pi r^2 h" },
+    { name:"Cone volume",           latex:"V = \\frac{1}{3}\\pi r^2 h" },
+    { name:"Heron's formula",       latex:"A = \\sqrt{s(s-a)(s-b)(s-c)}" },
+  ]},
+  { group: "Trigonometry", items: [
+    { name:"Pythagorean identity",  latex:"\\sin^2\\theta + \\cos^2\\theta = 1" },
+    { name:"Sine ratio",             latex:"\\sin\\theta = \\frac{o}{h}" },
+    { name:"Cosine ratio",           latex:"\\cos\\theta = \\frac{a}{h}" },
+    { name:"Tangent",               latex:"\\tan\\theta = \\frac{o}{a}" },
+    { name:"Law of sines",          latex:"\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}" },
+    { name:"Law of cosines",        latex:"c^2 = a^2 + b^2 - 2ab\\cos C" },
+    { name:"Double angle (sin)",    latex:"\\sin 2\\theta = 2\\sin\\theta\\cos\\theta" },
+    { name:"Double angle (cos)",    latex:"\\cos 2\\theta = \\cos^2\\theta - \\sin^2\\theta" },
+  ]},
+  { group: "Calculus", items: [
+    { name:"Derivative definition", latex:"f'(x) = \\lim_{h \\to 0} \\frac{f(x + h) - f(x)}{h}" },
+    { name:"Power rule",            latex:"\\frac{d}{dx}\\left[x^n\\right] = nx^{n-1}" },
+    { name:"Chain rule",            latex:"\\frac{d}{dx}\\left[f(g(x))\\right] = f'(g(x))\\cdot g'(x)" },
+    { name:"Product rule",          latex:"(fg)' = f'g + fg'" },
+    { name:"Quotient rule",         latex:"\\left(\\frac{f}{g}\\right)' = \\frac{f'g - fg'}{g^2}" },
+    { name:"Integration power rule",latex:"\\int x^n\\,dx = \\frac{x^{n+1}}{n+1} + C" },
+    { name:"Fundamental theorem",   latex:"\\int_a^b f'(x)\\,dx = f(b) - f(a)" },
+    { name:"Integration by parts",  latex:"\\int u\\,dv = uv - \\int v\\,du" },
+    { name:"d/dx sin⁻¹(x)",         latex:"\\frac{d}{dx}\\sin^{-1}x = \\frac{1}{\\sqrt{1 - x^2}}" },
+    { name:"d/dx cos⁻¹(x)",         latex:"\\frac{d}{dx}\\cos^{-1}x = -\\frac{1}{\\sqrt{1 - x^2}}" },
+    { name:"d/dx tan⁻¹(x)",         latex:"\\frac{d}{dx}\\tan^{-1}x = \\frac{1}{1 + x^2}" },
+  ]},
+  { group: "Physics", items: [
+    { name:"Mass–energy",           latex:"E = mc^2" },
+    { name:"Newton's second law",   latex:"F = ma" },
+    { name:"Kinetic energy",        latex:"E_k = \\frac{1}{2}mv^2" },
+    { name:"Potential energy",      latex:"E_p = mgh" },
+    { name:"Ohm's law",             latex:"V = IR" },
+    { name:"Wave speed",            latex:"v = f\\lambda" },
+    { name:"Gravitation",           latex:"F = G\\frac{m_1 m_2}{r^2}" },
+    { name:"Ideal gas law",         latex:"PV = nRT" },
+  ]},
+  { group: "Sequences & Series", items: [
+    { name:"Sum of 1..n",           latex:"\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}" },
+    { name:"Sum of squares",        latex:"\\sum_{k=1}^{n} k^2 = \\frac{n(n+1)(2n+1)}{6}" },
+    { name:"Arithmetic sum",        latex:"S_n = \\frac{n}{2}(a_1 + a_n)" },
+    { name:"Geometric sum",         latex:"S_n = a_1\\,\\frac{1 - r^n}{1 - r}" },
+    { name:"Geometric (infinite)",  latex:"S_\\infty = \\frac{a_1}{1 - r}" },
+    { name:"Binomial theorem",      latex:"(a+b)^n = \\sum_{k=0}^{n} \\binom{n}{k} a^{n-k} b^k" },
+  ]},
+];
+
+const EXTRA_FORMULAS = {
+  Geometry: [
+    { name:"Arc length",       latex:"s = r\\theta" },
+    { name:"Sector area",      latex:"A = \\frac{1}{2}r^2\\theta" },
+    { name:"Rectangle area",   latex:"A = lw" },
+  ],
+  Trigonometry: [
+    { name:"Angle sum (sin)",  latex:"\\sin(A \\pm B) = \\sin A\\cos B \\pm \\cos A\\sin B" },
+    { name:"Angle sum (cos)",  latex:"\\cos(A \\pm B) = \\cos A\\cos B \\mp \\sin A\\sin B" },
+    { name:"Tan identity",     latex:"\\tan\\theta = \\frac{\\sin\\theta}{\\cos\\theta}" },
+    { name:"1 + tan²",         latex:"1 + \\tan^2\\theta = \\sec^2\\theta" },
+  ],
+  Calculus: [
+    { name:"d/dx sin x",       latex:"\\frac{d}{dx}\\sin x = \\cos x" },
+    { name:"d/dx cos x",       latex:"\\frac{d}{dx}\\cos x = -\\sin x" },
+    { name:"d/dx eˣ",          latex:"\\frac{d}{dx}e^x = e^x" },
+    { name:"d/dx ln x",        latex:"\\frac{d}{dx}\\ln x = \\frac{1}{x}" },
+    { name:"∫ 1/x",            latex:"\\int \\frac{1}{x}\\,dx = \\ln|x| + C" },
+    { name:"Taylor series",    latex:"f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!}(x - a)^n" },
+    { name:"L'Hôpital's rule", latex:"\\lim_{x \\to a}\\frac{f(x)}{g(x)} = \\lim_{x \\to a}\\frac{f'(x)}{g'(x)}" },
+  ],
+  Physics: [
+    { name:"Velocity",         latex:"v = u + at" },
+    { name:"Displacement",     latex:"s = ut + \\frac{1}{2}at^2" },
+    { name:"Momentum",         latex:"p = mv" },
+    { name:"Work",             latex:"W = Fd\\cos\\theta" },
+    { name:"Power",            latex:"P = \\frac{W}{t}" },
+    { name:"Coulomb's law",    latex:"F = k\\frac{q_1 q_2}{r^2}" },
+  ],
+};
+Object.entries(EXTRA_FORMULAS).forEach(([g, items]) => FORMULA_LIBRARY.find(x => x.group === g).items.push(...items));
+FORMULA_LIBRARY.push(
+  { group:"Exponents & Logs", items:[
+    { name:"Product of powers",  latex:"a^m \\cdot a^n = a^{m+n}" },
+    { name:"Power of a power",   latex:"(a^m)^n = a^{mn}" },
+    { name:"Negative exponent",  latex:"a^{-n} = \\frac{1}{a^n}" },
+    { name:"Change of base",     latex:"\\log_b x = \\frac{\\ln x}{\\ln b}" },
+    { name:"Compound interest",  latex:"A = P\\left(1 + \\frac{r}{n}\\right)^{nt}" },
+    { name:"Continuous growth",  latex:"A = Pe^{rt}" },
+  ]},
+  { group:"Statistics", items:[
+    { name:"Mean",               latex:"\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n} x_i" },
+    { name:"Variance",           latex:"\\sigma^2 = \\frac{1}{n}\\sum_{i=1}^{n}(x_i - \\mu)^2" },
+    { name:"Standard deviation", latex:"\\sigma = \\sqrt{\\frac{1}{n}\\sum_{i=1}^{n}(x_i - \\mu)^2}" },
+    { name:"Z-score",            latex:"z = \\frac{x - \\mu}{\\sigma}" },
+    { name:"Bayes' theorem",     latex:"P(A|B) = \\frac{P(B|A)\\,P(A)}{P(B)}" },
+    { name:"Binomial probability", latex:"P(X = k) = \\binom{n}{k} p^k (1 - p)^{n-k}" },
+    { name:"Normal distribution", latex:"f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}" },
+    { name:"Combinations",       latex:"\\binom{n}{k} = \\frac{n!}{k!\\,(n-k)!}" },
+    { name:"Permutations",       latex:"P(n,k) = \\frac{n!}{(n-k)!}" },
+  ]},
+  { group:"Linear Algebra", items:[
+    { name:"2×2 determinant",    latex:"\\det\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix} = ad - bc" },
+    { name:"2×2 inverse",        latex:"A^{-1} = \\frac{1}{ad - bc}\\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix}" },
+    { name:"Dot product",        latex:"\\vec{a}\\cdot\\vec{b} = |\\vec{a}||\\vec{b}|\\cos\\theta" },
+    { name:"Cross product size", latex:"|\\vec{a}\\times\\vec{b}| = |\\vec{a}||\\vec{b}|\\sin\\theta" },
+    { name:"Eigenvalue equation",latex:"A\\vec{v} = \\lambda\\vec{v}" },
+  ]},
+  { group:"Complex & Constants", items:[
+    { name:"Euler's identity",   latex:"e^{i\\pi} + 1 = 0" },
+    { name:"Euler's formula",    latex:"e^{i\\theta} = \\cos\\theta + i\\sin\\theta" },
+    { name:"Imaginary unit",     latex:"i^2 = -1" },
+    { name:"De Moivre",          latex:"(\\cos\\theta + i\\sin\\theta)^n = \\cos n\\theta + i\\sin n\\theta" },
+    { name:"Modulus",            latex:"|z| = \\sqrt{a^2 + b^2}" },
+    { name:"Golden ratio",       latex:"\\varphi = \\frac{1 + \\sqrt{5}}{2}" },
+  ]},
+);
+
+/* ─── LATEX VARIABLE TOKENIZER ─── */
+const TEXT_LIKE_COMMANDS = new Set([
+  "text","textrm","mathrm","mathbf","mathit","mathsf","mathtt",
+  "operatorname","begin","end","color","colorbox","class","style","id","textcolor","tag","href","url","htmlData","htmlClass","htmlId","htmlStyle","label","ref","eqref"
+]);
+
+const FRAC_LIKE = new Set(["frac","dfrac","tfrac","cfrac","binom"]);
+function tokenizeVariables(latex) {
+  const vars = [], L = latex.length;
+  const re = /[A-Za-z]|[0-9]+(?:\.[0-9]+)?/y;
+  let i = 0, single = 0;   // single: unbraced \frac12 style args
+  while (i < L) {
+    const ch = latex[i];
+    if (ch === "\\") {
+      let j = i + 1;
+      if (latex[j] === "\\") { i = j + 1; continue; }
+      while (j < L && /[a-zA-Z]/.test(latex[j])) j++;
+      const cmd = latex.slice(i + 1, j);
+      let k = j; while (latex[k] === " ") k++;
+      single = 0;
+      if (TEXT_LIKE_COMMANDS.has(cmd) && latex[k] === "{") {
+        let depth = 1; k++;
+        while (k < L && depth > 0) {
+          if (latex[k] === "\\") { k += 2; continue; }
+          if (latex[k] === "{") depth++;
+          else if (latex[k] === "}") depth--;
+          k++;
+        }
+        i = k; continue;
+      }
+      if (FRAC_LIKE.has(cmd) && latex[k] !== "{") single = 2;
+      i = j; continue;
+    }
+    if (ch === "{") single = 0;
+    re.lastIndex = i;
+    const m = re.exec(latex);
+    if (m) {
+      let text = m[0];
+      if (single > 0) { text = text[0]; single--; }
+      vars.push({ start:i, length:text.length, text });
+      i += text.length; continue;
+    }
+    i++;
+  }
+  return vars;
+}
+
+/* ─── STATE ─── */
+let state = null, board = null;
+let selection = null, editing = null, editingTextarea = null;
+let clipboard = null, clipboardImage = null;
+let undoStack = [], redoStack = [];
+let mouseWorld = { x:0, y:0 };
+let viewport, world, toolbar, dropzone, pickerEl, pickerBody;
+let idCounter = 1;
+
+/* ─── INIT ─── */
+function boot() {
+  viewport   = document.getElementById("viewport");
+  world      = document.getElementById("world");
+  toolbar    = document.getElementById("toolbar");
+  dropzone   = document.getElementById("dropzone");
+  pickerEl   = document.getElementById("formulaPicker");
+  pickerBody = document.getElementById("fpBody");
+
+  loadState();
+  if (!state || !state.boards || !Object.keys(state.boards).length) {
+    state = { currentBoard:"Untitled",
+      boards: { "Untitled": { boxes: [], pan:{x:60,y:60}, zoom:1 } } };
+  }
+  if (!state.boards[state.currentBoard]) state.currentBoard = Object.keys(state.boards)[0];
+  board = state.boards[state.currentBoard];
+
+  buildToolbar();
+  buildFormulaPicker();
+  buildBoardSelect();
+  bindViewportEvents();
+  bindKeyboard();
+  bindImagePaste();
+  bindImageDrop();
+  bindTopbar();
+
+  applyTransform();
+  renderAll();
+  document.getElementById("loading").classList.add("hidden");
+
+  if (!board.boxes.length) {
+    createMathBox(70, 60, "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}", false);
+    createMathBox(70, 230, "a^2 + b^2 = c^2", false);
+  }
+}
+
+/* ─── PERSISTENCE ─── */
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn("Save failed:", e); }
+}
+function loadState() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) state = JSON.parse(raw); }
+  catch (e) { console.warn("Load failed:", e); }
+}
+function snapshot() { return JSON.stringify(board); }
+function pushUndo() {
+  undoStack.push(snapshot());
+  if (undoStack.length > 100) undoStack.shift();
+  redoStack = [];
+}
+function undo() {
+  if (!undoStack.length) return;
+  commitEdit(true); redoStack.push(snapshot());
+  state.boards[state.currentBoard] = JSON.parse(undoStack.pop());
+  board = state.boards[state.currentBoard];
+  editing = null; editingTextarea = null;
+  applyTransform(); renderAll(); save();
+}
+function redo() {
+  if (!redoStack.length) return;
+  commitEdit(true); undoStack.push(snapshot());
+  state.boards[state.currentBoard] = JSON.parse(redoStack.pop());
+  board = state.boards[state.currentBoard];
+  editing = null; editingTextarea = null;
+  applyTransform(); renderAll(); save();
+}
+
+/* ─── TRANSFORM / GRID ─── */
+function applyTransform() {
+  world.style.transform = `translate(${board.pan.x}px, ${board.pan.y}px) scale(${board.zoom})`;
+  let g = BASE_GRID * board.zoom;
+  while (g < 12) g *= 2;
+  while (g > 96) g /= 2;
+  viewport.style.backgroundSize = g + "px " + g + "px";
+  viewport.style.backgroundPosition = board.pan.x + "px " + board.pan.y + "px";
+  const zl = document.getElementById("zoomLabel"); if (zl) zl.textContent = Math.round(board.zoom * 100) + "%";
+}
+function screenToWorld(clientX, clientY) {
+  const r = viewport.getBoundingClientRect();
+  return { x:(clientX - r.left - board.pan.x) / board.zoom,
+           y:(clientY - r.top  - board.pan.y) / board.zoom };
+}
+
+/* ─── RENDER ─── */
+function renderAll() {
+  const ids = new Set(board.boxes.map(b => b.id));
+  [...world.children].forEach(el => { if (!ids.has(el.dataset.id)) el.remove(); });
+  board.boxes.forEach(renderBox);
+}
+function renderBox(box) {
+  let el = world.querySelector(`[data-id="${box.id}"]`);
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "math-box";
+    el.dataset.id = box.id;
+    world.appendChild(el);
+    buildBoxChrome(el, box);
+  }
+  el.classList.toggle("image-box", box.type === "image");
+  el.style.left  = box.x + "px";
+  el.style.top   = box.y + "px";
+  el.style.width = (box.w || (box.type === "image" ? 320 : 340)) + "px";
+  el.classList.toggle("selected", selection === box.id);
+  el.classList.toggle("editing",  editing  === box.id);
+
+  const content = el.querySelector(".box-content");
+  const fs = box.fontSize || DEFAULT_FONT_SIZE;
+  content.style.fontSize = Math.round(BASE_FONT * fs) + "px";
+  content.style.color = box.color || "#1a1a1a";
+
+  if (box.type === "image") {
+    if (editing === box.id) buildImageEditor(content, box);
+    else {
+      content.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = box.src; img.alt = box.alt || ""; img.draggable = false;
+      content.appendChild(img);
+    }
+    return;
+  }
+  if (editing === box.id) {
+    if (!content.querySelector(".edit-input")) buildMathEditor(content, box);
+  } else {
+    content.innerHTML = "";
+    renderKatexInto(content, box.latex, box);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KATEX RENDERING + EDITABLE VARIABLES
+   Every letter/number is wrapped as {\htmlData{mv=N}{x}} before rendering,
+   so each rendered glyph carries its own data-mv index. (KaTeX draws
+   fraction denominators / subscripts BEFORE numerators / superscripts in
+   the DOM, so matching by DOM order picked the wrong variable.)
+   ═══════════════════════════════════════════════════════════════ */
+const TRUST = ctx => ctx.command === "\\htmlData";   // allow only data attributes
+function wrapVariables(latex, vars) {
+  let out = "", last = 0;
+  vars.forEach((v, i) => {
+    out += latex.slice(last, v.start) + "{\\htmlData{mv=" + i + "}{" + v.text + "}}";
+    last = v.start + v.length;
+  });
+  return out + latex.slice(last);
+}
+function renderKatexInto(el, latex, box) {
+  if (!latex || !latex.trim()) {
+    el.innerHTML = '<span style="color:#c8c2b3;font-size:12px;font-style:italic">empty — click to add a formula</span>';
+    return;
+  }
+  el.innerHTML = "";
+  if (box) {
+    const vars = tokenizeVariables(latex);
+    if (vars.length) {
+      try {
+        katex.render(wrapVariables(latex, vars), el,
+          { displayMode:true, throwOnError:true, strict:"ignore", trust:TRUST });
+        attachVarHandlers(el, box);
+        return;
+      } catch (e) { el.innerHTML = ""; }
+    }
+  }
+  try {
+    katex.render(latex, el, { displayMode:true, throwOnError:false, errorColor:"#c0392b", strict:"ignore" });
+  } catch (e) {
+    el.textContent = "⚠ " + e.message;
+    el.style.color = "#c0392b"; el.style.fontSize = "12px";
+  }
+}
+function attachVarHandlers(boxEl, box) {
+  boxEl.querySelectorAll("[data-mv]").forEach(span => {
+    const i = +span.dataset.mv;
+    span.classList.add("mv");
+    span.title = "Click to edit";
+    span.addEventListener("pointerdown", e => e.stopPropagation());
+    span.addEventListener("click", e => { e.stopPropagation(); startInlineEdit(span, i, box); });
+    span.addEventListener("dblclick", e => e.stopPropagation());
+  });
+}
+
+/* ─── INLINE EDITING ─── */
+function startInlineEdit(span, idx, box) {
+  if (span.isContentEditable) return;
+  const original = span.textContent;
+  span.contentEditable = "true";
+  span.spellcheck = false;
+  span.focus();
+  const range = document.createRange();
+  range.selectNodeContents(span);
+  const sel = window.getSelection();
+  sel.removeAllRanges(); sel.addRange(range);
+
+  let finished = false, all = false, next = null;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    span.contentEditable = "false";
+    const t = span.textContent.replace(/\u00a0/g, " ").trim();
+    if (t && t !== original) applyVariable(box, idx, t, all);
+    else renderBox(box);
+    if (next !== null) setTimeout(() => editVariable(box, idx + next), 0);
+  };
+  span.addEventListener("blur", finish, { once: true });
+  span.addEventListener("keydown", e => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); all = e.shiftKey; span.blur(); }
+    else if (e.key === "Tab") { e.preventDefault(); next = e.shiftKey ? -1 : 1; span.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); span.textContent = original; span.blur(); }
+  });
+}
+function editVariable(box, idx) {
+  const el = world.querySelector(`[data-id="${box.id}"]`);
+  const s = el && el.querySelector(`[data-mv="${idx}"]`);
+  if (s) startInlineEdit(s, idx, box);
+}
+function applyVariable(box, idx, text, all) {
+  const vars = tokenizeVariables(box.latex);
+  if (idx < 0 || idx >= vars.length) { renderBox(box); return; }
+  const orig = vars[idx].text;
+  const targets = all ? vars.map((v, i) => i).filter(i => vars[i].text === orig) : [idx];
+  let out = box.latex;
+  for (const i of targets.slice().reverse()) {
+    const v = vars[i];
+    let t = text;
+    const prev = out.slice(0, v.start).trimEnd().slice(-1);
+    if (t.length > 1 && (prev === "^" || prev === "_")) t = "{" + t + "}";
+    out = out.slice(0, v.start) + t + out.slice(v.start + v.length);
+  }
+  try { katex.renderToString(out, { throwOnError:true, strict:"ignore" }); }
+  catch (e) { toast("Invalid LaTeX — change not applied"); renderBox(box); return; }
+  pushUndo();
+  box.latex = out;
+  save(); renderBox(box);
+  if (targets.length > 1) toast("Changed " + targets.length + " × " + orig + " → " + text);
+}
+
+/* ─── TOAST / DEBOUNCED SAVE ─── */
+function toast(msg) {
+  let t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+let _saveT = null;
+function saveSoon() { clearTimeout(_saveT); _saveT = setTimeout(save, 300); }
+
+/* ─── ZOOM / FIT ─── */
+function zoomAt(f, mx, my) {
+  const r = viewport.getBoundingClientRect();
+  if (mx == null) { mx = r.width / 2; my = r.height / 2; }
+  const oz = board.zoom, nz = Math.min(6, Math.max(0.15, oz * f));
+  const wx = (mx - board.pan.x) / oz, wy = (my - board.pan.y) / oz;
+  board.pan.x = mx - wx * nz; board.pan.y = my - wy * nz; board.zoom = nz;
+  applyTransform(); saveSoon();
+}
+function fitContent() {
+  const r = viewport.getBoundingClientRect();
+  if (!board.boxes.length) { board.zoom = 1; board.pan = { x:60, y:60 }; }
+  else {
+    let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+    board.boxes.forEach(b => {
+      const el = world.querySelector(`[data-id="${b.id}"]`);
+      const w = el ? el.offsetWidth : (b.w || 340), h = el ? el.offsetHeight : 60;
+      x1 = Math.min(x1, b.x); y1 = Math.min(y1, b.y);
+      x2 = Math.max(x2, b.x + w); y2 = Math.max(y2, b.y + h);
+    });
+    const pad = 60;
+    const z = Math.min(2, Math.max(0.15, Math.min((r.width - pad * 2) / (x2 - x1), (r.height - pad * 2) / (y2 - y1))));
+    board.zoom = z;
+    board.pan.x = (r.width - (x2 - x1) * z) / 2 - x1 * z;
+    board.pan.y = (r.height - (y2 - y1) * z) / 2 - y1 * z;
+  }
+  applyTransform(); save();
+}
+
+/* ─── BOX CHROME ─── */
+function buildBoxChrome(el, box) {
+  const content = document.createElement("div");
+  content.className = "box-content";
+  el.appendChild(content);
+
+  const ctrl = document.createElement("div");
+  ctrl.className = "box-controls";
+  ctrl.innerHTML =
+    '<button class="ctrl-color" title="Colour">◐</button>' +
+    '<button class="ctrl-size"  title="Text size">A</button>' +
+    '<button class="ctrl-tex"   title="Copy LaTeX">TeX</button>' +
+    '<button class="ctrl-dup"   title="Duplicate (Ctrl+D)">⧉</button>' +
+    '<button class="ctrl-del danger" title="Delete (Del)">✕</button>';
+  el.appendChild(ctrl);
+
+  const rh = document.createElement("div");
+  rh.className = "resize-handle";
+  el.appendChild(rh);
+
+  ctrl.addEventListener("pointerdown", e => e.stopPropagation());
+  rh.addEventListener("pointerdown", e => { e.stopPropagation(); e.preventDefault(); startResize(e, box, el); });
+  ctrl.querySelector(".ctrl-color").addEventListener("click", e => { e.stopPropagation(); openColorPopover(el, box); });
+  ctrl.querySelector(".ctrl-size").addEventListener("click",  e => { e.stopPropagation(); openSizePopover(el, box); });
+  ctrl.querySelector(".ctrl-tex").addEventListener("click", e => {
+    e.stopPropagation();
+    if (box.type === "image") { toast("Images have no LaTeX"); return; }
+    const done = () => toast("LaTeX copied");
+    if (navigator.clipboard) navigator.clipboard.writeText(box.latex || "").then(done, () => toast("Copy failed"));
+    else toast("Copy not supported here");
+  });
+  ctrl.querySelector(".ctrl-dup").addEventListener("click",   e => { e.stopPropagation(); duplicateBox(box); });
+  ctrl.querySelector(".ctrl-del").addEventListener("click",   e => { e.stopPropagation(); deleteBox(box); });
+
+  el.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    if (e.target.closest(".box-controls")) return;
+    if (e.target.closest(".resize-handle")) return;
+    if (e.target.closest(".mv")) return;
+    if (editing === box.id) return;
+    e.stopPropagation();
+    if (editing) commitEdit();
+    if (selection !== box.id) { selection = box.id; renderAll(); }
+    startDrag(e, box, el);
+  });
+  el.addEventListener("dblclick", e => {
+    if (e.target.closest(".box-controls")) return;
+    if (e.target.closest(".resize-handle")) return;
+    if (e.target.closest(".mv")) return;
+    e.stopPropagation();
+    enterEdit(box);
+  });
+}
+
+/* ─── RAW LaTeX EDITOR ─── */
+function enterEdit(box) {
+  if (editing === box.id) return;
+  if (editing) commitEdit();
+  editing = box.id; selection = box.id;
+  renderAll();
+  requestAnimationFrame(() => {
+    const el = world.querySelector(`[data-id="${box.id}"]`);
+    const ta = el && el.querySelector(".edit-input");
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  });
+}
+function buildMathEditor(content, box) {
+  content.innerHTML = "";
+  const ta = document.createElement("textarea");
+  ta.className = "edit-input";
+  ta.value = box.latex || "";
+  ta.spellcheck = false;
+  ta.placeholder = "LaTeX…";
+  content.appendChild(ta);
+
+  const hint = document.createElement("div");
+  hint.className = "edit-hint";
+  hint.innerHTML = 'Tip: <kbd>Esc</kbd> to close — then just click any letter in the formula to edit it directly';
+  content.appendChild(hint);
+
+  const prev = document.createElement("div");
+  prev.className = "edit-preview";
+  content.appendChild(prev);
+
+  editingTextarea = ta;
+  const update = () => {
+    prev.innerHTML = "";
+    if (!ta.value.trim()) return;
+    try { katex.render(ta.value, prev, { displayMode:true, throwOnError:false, strict:"ignore" }); }
+    catch (e) { prev.textContent = e.message; prev.style.color = "#c0392b"; }
+  };
+  update();
+  ta.addEventListener("input", update);
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Tab") { e.preventDefault(); jumpToSlot(ta, e.shiftKey ? -1 : 1); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); commitEdit(); renderAll(); return; }
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.stopPropagation(); commitEdit(); renderAll(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); e.stopPropagation(); commitEdit(); save(); renderAll(); return; }
+    e.stopPropagation();
+  });
+}
+function findSlots(text) {
+  const slots = []; let i = 0;
+  while ((i = text.indexOf(SLOT, i)) !== -1) { slots.push({ start:i, end:i+SLOT_LEN }); i += SLOT_LEN; }
+  return slots;
+}
+function jumpToSlot(ta, dir) {
+  const slots = findSlots(ta.value);
+  if (!slots.length) return;
+  let target;
+  if (dir > 0) target = slots.find(s => s.start >= ta.selectionEnd) || slots[0];
+  else {
+    target = null;
+    for (let i = slots.length - 1; i >= 0; i--)
+      if (slots[i].end <= ta.selectionStart) { target = slots[i]; break; }
+    if (!target) target = slots[slots.length - 1];
+  }
+  selectSlot(ta, target);
+}
+function selectSlot(ta, slot) {
+  ta.focus();
+  ta.setSelectionRange(slot.start, slot.end);
+  const linesBefore = ta.value.slice(0, slot.start).split("\n").length;
+  const desiredScroll = (linesBefore - 2) * 20;
+  if (desiredScroll > ta.scrollTop) ta.scrollTop = Math.max(0, desiredScroll);
+}
+function commitEdit(silent) {
+  if (!editing) return;
+  const box = board.boxes.find(b => b.id === editing);
+  if (!box) { editing = null; editingTextarea = null; return; }
+  if (box.type !== "image") {
+    const el = world.querySelector(`[data-id="${box.id}"]`);
+    const ta = el && el.querySelector(".edit-input");
+    if (ta && ta.value !== box.latex) { if (!silent) pushUndo(); box.latex = ta.value; }
+    editing = null; editingTextarea = null;
+    if (!box.latex || !box.latex.trim()) {
+      if (!silent) pushUndo();
+      board.boxes = board.boxes.filter(b => b.id !== box.id);
+      if (selection === box.id) selection = null;
+      save(); renderAll(); return;
+    }
+  } else { editing = null; }
+  save(); renderAll();
+}
+
+/* ─── IMAGE EDITOR ─── */
+function buildImageEditor(content, box) {
+  content.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;flex-direction:column;gap:8px;min-width:220px";
+  const img = document.createElement("img");
+  img.src = box.src; img.draggable = false;
+  img.style.cssText = "display:block;max-width:100%;max-height:220px;border-radius:4px;pointer-events:none";
+  wrap.appendChild(img);
+  const actions = document.createElement("div");
+  actions.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
+  const mk = (label, styles, fn) => {
+    const b = document.createElement("button");
+    b.textContent = label; b.style.cssText = styles;
+    b.onclick = e => { e.stopPropagation(); fn(); };
+    return b;
+  };
+  actions.appendChild(mk("Replace","padding:5px 10px;border:1px solid #e0dcd0;border-radius:6px;background:#faf9f6;font-size:12px",
+    () => pickImageFile(file => {
+      pushUndo();
+      const reader = new FileReader();
+      reader.onload = () => { box.src = reader.result; editing = null; save(); renderAll(); };
+      reader.readAsDataURL(file);
+    })));
+  actions.appendChild(mk("Caption","padding:5px 10px;border:1px solid #e0dcd0;border-radius:6px;background:#faf9f6;font-size:12px",
+    () => { const c = prompt("Caption (LaTeX):", box.alt || ""); if (c !== null) { box.alt = c; save(); renderAll(); } }));
+  actions.appendChild(mk("Done","padding:5px 10px;border:1px solid #1a3a7a;border-radius:6px;background:#1a3a7a;color:#fff;font-size:12px",
+    () => { editing = null; renderAll(); }));
+  wrap.appendChild(actions);
+  content.appendChild(wrap);
+}
+
+/* ─── BOX CRUD ─── */
+function newId() { return "b" + Date.now().toString(36) + (idCounter++).toString(36); }
+function createMathBox(x, y, latex, doEdit = true) {
+  const box = { id:newId(), type:"math", x:Math.round(x), y:Math.round(y),
+    w:340, latex: latex || "", color:"#1a1a1a", fontSize:DEFAULT_FONT_SIZE };
+  pushUndo(); board.boxes.push(box); selection = box.id;
+  renderAll(); save();
+  if (doEdit) enterEdit(box);
+  return box;
+}
+function createImageBox(x, y, src, w, h) {
+  const maxW = 360, bw = Math.min(maxW, w || maxW);
+  const box = { id:newId(), type:"image", x:Math.round(x), y:Math.round(y),
+    w:Math.round(bw), src, alt:"" };
+  pushUndo(); board.boxes.push(box); selection = box.id;
+  renderAll(); save();
+  return box;
+}
+function deleteBox(box) {
+  pushUndo();
+  board.boxes = board.boxes.filter(b => b.id !== box.id);
+  if (selection === box.id) selection = null;
+  if (editing  === box.id) { editing = null; editingTextarea = null; }
+  renderAll(); save();
+}
+function duplicateBox(box) {
+  const copy = { ...box, id:newId(), x:box.x + 24, y:box.y + 24 };
+  pushUndo(); board.boxes.push(copy); selection = copy.id;
+  renderAll(); save();
+}
+
+/* ─── POPOVERS ─── */
+function closePopovers() { document.querySelectorAll(".color-popover, .size-popover").forEach(p => p.remove()); }
+function openColorPopover(boxEl, box) {
+  closePopovers();
+  const pop = document.createElement("div");
+  pop.className = "color-popover";
+  ["#1a1a1a","#1a3a7a","#c0392b","#0e7490","#2e7d32","#6a1b9a","#d97706"].forEach(c => {
+    const b = document.createElement("button");
+    b.className = "swatch" + ((box.color || "#1a1a1a") === c ? " active" : "");
+    b.style.background = c; b.title = c;
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      pushUndo(); box.color = c; pop.remove(); renderBox(box); save();
+    });
+    pop.appendChild(b);
+  });
+  boxEl.querySelector(".box-controls").appendChild(pop);
+  attachOutsideClose(pop);
+}
+function openSizePopover(boxEl, box) {
+  closePopovers();
+  const current = box.fontSize || DEFAULT_FONT_SIZE;
+  const pop = document.createElement("div");
+  pop.className = "size-popover";
+  FONT_SIZES.forEach(([mult, label]) => {
+    const b = document.createElement("button");
+    if (Math.abs(mult - current) < 0.01) b.classList.add("active");
+    b.innerHTML = `<span>${label}</span><span class="sample" style="font-size:${Math.round(11*mult)}px">x²</span>`;
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      pushUndo(); box.fontSize = mult; pop.remove(); renderBox(box); save();
+    });
+    pop.appendChild(b);
+  });
+  boxEl.querySelector(".box-controls").appendChild(pop);
+  attachOutsideClose(pop);
+}
+function attachOutsideClose(pop) {
+  setTimeout(() => {
+    const close = ev => {
+      if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener("pointerdown", close, true); }
+    };
+    document.addEventListener("pointerdown", close, true);
+  }, 0);
+}
+
+/* ─── DRAG / RESIZE ─── */
+function startDrag(e, box, el) {
+  const startX = e.clientX, startY = e.clientY;
+  const startBX = box.x, startBY = box.y;
+  const z = board.zoom;
+  let moved = false, before = null;
+  function onMove(ev) {
+    const dx = (ev.clientX - startX) / z, dy = (ev.clientY - startY) / z;
+    if (!moved) {
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 3) return;
+      before = snapshot(); moved = true;
+    }
+    let nx = startBX + dx, ny = startBY + dy;
+    if (!ev.shiftKey) { nx = Math.round(nx / 8) * 8; ny = Math.round(ny / 8) * 8; }
+    box.x = nx; box.y = ny;
+    el.style.left = nx + "px"; el.style.top = ny + "px";
+  }
+  function onUp() {
+    document.removeEventListener("pointermove", onMove);
+    document.removeEventListener("pointerup", onUp);
+    if (moved) { undoStack.push(before); if (undoStack.length > 100) undoStack.shift(); redoStack = []; save(); }
+  }
+  document.addEventListener("pointermove", onMove);
+  document.addEventListener("pointerup", onUp);
+}
+function startResize(e, box, el) {
+  const startX = e.clientX, startW = box.w || 340, z = board.zoom;
+  let moved = false, before = null;
+  function onMove(ev) {
+    const dx = (ev.clientX - startX) / z;
+    if (!moved) { if (Math.abs(ev.clientX - startX) < 3) return; before = snapshot(); moved = true; }
+    const w = Math.max(80, startW + dx);
+    box.w = Math.round(w); el.style.width = box.w + "px";
+  }
+  function onUp() {
+    document.removeEventListener("pointermove", onMove);
+    document.removeEventListener("pointerup", onUp);
+    if (moved) { undoStack.push(before); redoStack = []; save(); }
+  }
+  document.addEventListener("pointermove", onMove);
+  document.addEventListener("pointerup", onUp);
+}
+
+/* ─── VIEWPORT EVENTS ─── */
+function bindViewportEvents() {
+  let drag = null, spaceDown = false;
+  viewport.addEventListener("pointerdown", e => {
+    if (e.target.closest(".math-box")) return;
+    if (e.target.closest("#formulaPicker") || e.target.closest("#zoomctl")) return;
+    if (e.button !== 0 && e.button !== 1) return;
+    drag = { sx:e.clientX, sy:e.clientY, spx:board.pan.x, spy:board.pan.y,
+      moved:false, button:e.button, forcePan: e.button === 1 || spaceDown };
+    viewport.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+  viewport.addEventListener("pointermove", e => {
+    mouseWorld = screenToWorld(e.clientX, e.clientY);
+    if (!drag) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; viewport.classList.add("panning"); }
+    if (drag.moved) { board.pan.x = drag.spx + dx; board.pan.y = drag.spy + dy; applyTransform(); }
+  });
+  viewport.addEventListener("pointerup", e => {
+    if (!drag) return;
+    viewport.classList.remove("panning");
+    const d = drag; drag = null;
+    if (!d.moved && !d.forcePan && d.button === 0) {
+      if (editing) commitEdit();
+      selection = null;
+      const wp = screenToWorld(e.clientX, e.clientY);
+      createMathBox(wp.x, wp.y, "", true);
+    } else if (d.moved) save();
+  });
+  viewport.addEventListener("pointercancel", () => { viewport.classList.remove("panning"); drag = null; });
+  viewport.addEventListener("wheel", e => {
+    if (e.target.closest("#formulaPicker")) return;
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const r = viewport.getBoundingClientRect();
+      zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+    } else {
+      board.pan.x -= e.deltaX; board.pan.y -= e.deltaY;
+      applyTransform(); saveSoon();
+    }
+  }, { passive:false });
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" && !isTextField(e.target)) { spaceDown = true; if (!drag) viewport.style.cursor = "grab"; }
+  });
+  document.addEventListener("keyup", e => {
+    if (e.code === "Space") { spaceDown = false; if (!drag) viewport.style.cursor = ""; }
+  });
+}
+function isTextField(el) {
+  return !!(el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.isContentEditable));
+}
+
+/* ─── IMAGES ─── */
+function bindImagePaste() {
+  document.addEventListener("paste", e => {
+    if (isTextField(document.activeElement)) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); insertImageFile(file, mouseWorld.x, mouseWorld.y); return; }
+      }
+    }
+  });
+}
+function bindImageDrop() {
+  let dragDepth = 0;
+  viewport.addEventListener("dragenter", e => {
+    if (![...e.dataTransfer.types].includes("Files")) return;
+    e.preventDefault(); dragDepth++; dropzone.classList.add("active");
+  });
+  viewport.addEventListener("dragover", e => {
+    if (![...e.dataTransfer.types].includes("Files")) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = "copy";
+  });
+  viewport.addEventListener("dragleave", () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropzone.classList.remove("active");
+  });
+  viewport.addEventListener("drop", e => {
+    dragDepth = 0; dropzone.classList.remove("active");
+    const files = e.dataTransfer?.files;
+    if (!files || !files.length) return;
+    e.preventDefault();
+    const wp = screenToWorld(e.clientX, e.clientY);
+    let offset = 0;
+    for (const f of files) {
+      if (f.type.startsWith("image/")) { insertImageFile(f, wp.x + offset, wp.y + offset); offset += 24; }
+    }
+  });
+}
+function insertImageFile(file, x, y) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const src = reader.result;
+    const probe = new Image();
+    probe.onload  = () => createImageBox(x, y, src, probe.naturalWidth, probe.naturalHeight);
+    probe.onerror = () => createImageBox(x, y, src, 320, 200);
+    probe.src = src;
+  };
+  reader.readAsDataURL(file);
+}
+function pickImageFile(cb) {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*";
+  inp.onchange = () => { if (inp.files[0]) cb(inp.files[0]); };
+  inp.click();
+}
+
+/* ─── TOOLBAR ─── */
+const TOOLBAR = [
+  { items:[
+    { label:"a/b",   latex:"\\frac{" + SLOT + "}{" + SLOT + "}" },
+    { label:"√",     latex:"\\sqrt{" + SLOT + "}" },
+    { label:"ⁿ√",    latex:"\\sqrt[" + SLOT + "]{" + SLOT + "}" },
+    { label:"(ⁿₖ)",  latex:"\\binom{" + SLOT + "}{" + SLOT + "}" },
+  ]},
+  { items:[
+    { label:"x²",  latex:"^{" + SLOT + "}" },
+    { label:"xₙ",  latex:"_{" + SLOT + "}" },
+    { label:"xⁿₖ", latex:"_{" + SLOT + "}^{" + SLOT + "}" },
+    { label:"Σ",   latex:"\\sum_{" + SLOT + "}^{" + SLOT + "}" },
+    { label:"∏",   latex:"\\prod_{" + SLOT + "}^{" + SLOT + "}" },
+    { label:"∫",   latex:"\\int_{" + SLOT + "}^{" + SLOT + "}" },
+    { label:"∬",   latex:"\\iint_{" + SLOT + "}^{" + SLOT + "}" },
+    { label:"∮",   latex:"\\oint_{" + SLOT + "}^{" + SLOT + "}" },
+  ]},
+  { items:[
+    { label:"α", latex:"\\alpha" }, { label:"β", latex:"\\beta" },
+    { label:"γ", latex:"\\gamma" }, { label:"δ", latex:"\\delta" },
+    { label:"ε", latex:"\\varepsilon" }, { label:"θ", latex:"\\theta" },
+    { label:"λ", latex:"\\lambda" }, { label:"μ", latex:"\\mu" },
+    { label:"π", latex:"\\pi" }, { label:"ρ", latex:"\\rho" },
+    { label:"σ", latex:"\\sigma" }, { label:"φ", latex:"\\varphi" },
+    { label:"ω", latex:"\\omega" },
+    { label:"Γ", latex:"\\Gamma" }, { label:"Δ", latex:"\\Delta" },
+    { label:"Θ", latex:"\\Theta" }, { label:"Λ", latex:"\\Lambda" },
+    { label:"Π", latex:"\\Pi" }, { label:"Σ", latex:"\\Sigma" },
+    { label:"Φ", latex:"\\Phi" }, { label:"Ψ", latex:"\\Psi" },
+    { label:"Ω", latex:"\\Omega" },
+  ]},
+  { items:[
+    { label:"≠",  latex:"\\neq" }, { label:"≈",  latex:"\\approx" },
+    { label:"≤",  latex:"\\leq" }, { label:"≥",  latex:"\\geq" },
+    { label:"≡",  latex:"\\equiv" }, { label:"∝",  latex:"\\propto" },
+    { label:"∈",  latex:"\\in" }, { label:"∉",  latex:"\\notin" },
+    { label:"⊂",  latex:"\\subset" }, { label:"⊆",  latex:"\\subseteq" },
+    { label:"∪",  latex:"\\cup" }, { label:"∩",  latex:"\\cap" },
+    { label:"∅",  latex:"\\emptyset" }, { label:"→", latex:"\\to" },
+    { label:"⇒",  latex:"\\Rightarrow" }, { label:"⇔", latex:"\\Leftrightarrow" },
+  ]},
+  { items:[
+    { label:"×", latex:"\\times" }, { label:"÷", latex:"\\div" },
+    { label:"·", latex:"\\cdot" }, { label:"±", latex:"\\pm" },
+    { label:"∓", latex:"\\mp" }, { label:"∂", latex:"\\partial" },
+    { label:"∇", latex:"\\nabla" }, { label:"∞", latex:"\\infty" },
+  ]},
+  { items:[
+    { label:"d/dx", latex:"\\frac{d}{d" + SLOT + "}" },
+    { label:"∂/∂x", latex:"\\frac{\\partial}{\\partial " + SLOT + "}" },
+    { label:"lim",  latex:"\\lim_{" + SLOT + " \\to " + SLOT + "}" },
+    { label:"d/dx[]", latex:"\\frac{d}{dx}\\left[" + SLOT + "\\right]" },
+  ]},
+  { items:[
+    { label:"matrix",  latex:"\\begin{pmatrix} " + SLOT + " & " + SLOT + " \\\\ " + SLOT + " & " + SLOT + " \\end{pmatrix}" },
+    { label:"cases",   latex:"\\begin{cases} " + SLOT + " & " + SLOT + " \\\\ " + SLOT + " & " + SLOT + " \\end{cases}" },
+    { label:"aligned", latex:"\\begin{aligned} " + SLOT + " &= " + SLOT + " \\\\ " + SLOT + " &= " + SLOT + " \\end{aligned}" },
+  ]},
+  { items:[
+    { label:"x̂", latex:"\\hat{" + SLOT + "}" }, { label:"x̄", latex:"\\bar{" + SLOT + "}" },
+    { label:"x⃗", latex:"\\vec{" + SLOT + "}" }, { label:"ẋ", latex:"\\dot{" + SLOT + "}" },
+    { label:"ẍ", latex:"\\ddot{" + SLOT + "}" }, { label:"x̃", latex:"\\tilde{" + SLOT + "}" },
+    { label:"‾", latex:"\\overline{" + SLOT + "}" }, { label:"_", latex:"\\underline{" + SLOT + "}" },
+  ]},
+  { items:[
+    { label:"sin", latex:"\\sin" }, { label:"cos", latex:"\\cos" }, { label:"tan", latex:"\\tan" },
+    { label:"ln",  latex:"\\ln" },  { label:"log", latex:"\\log" },
+    { label:"eˣ",  latex:"e^{" + SLOT + "}" },
+  ]},
+  { items:[
+    { label:"( )",  latex:"\\left(" + SLOT + "\\right)" },
+    { label:"[ ]",  latex:"\\left[" + SLOT + "\\right]" },
+    { label:"{ }",  latex:"\\left\\{" + SLOT + "\\right\\}" },
+    { label:"| |",  latex:"\\left|" + SLOT + "\\right|" },
+    { label:"⌊ ⌋",  latex:"\\lfloor " + SLOT + " \\rfloor" },
+    { label:"text", latex:"\\text{" + SLOT + "}" },
+  ]},
+  { items:[
+    { label:"ℝ", latex:"\\mathbb{R}" }, { label:"ℕ", latex:"\\mathbb{N}" },
+    { label:"ℤ", latex:"\\mathbb{Z}" }, { label:"ℚ", latex:"\\mathbb{Q}" },
+    { label:"ℂ", latex:"\\mathbb{C}" }, { label:"∀", latex:"\\forall" },
+    { label:"∃", latex:"\\exists" },    { label:"⋯", latex:"\\cdots" },
+    { label:"∴", latex:"\\therefore" },
+  ]},
+];
+function buildToolbar() {
+  toolbar.innerHTML = "";
+  TOOLBAR.forEach(group => {
+    const g = document.createElement("div");
+    g.className = "group";
+    group.items.forEach(item => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = item.label;
+      b.addEventListener("click", e => { e.preventDefault(); insertSnippet(item.latex); });
+      b.addEventListener("mouseenter", () => showTooltip(b, item.latex));
+      b.addEventListener("mouseleave", hideTooltip);
+      g.appendChild(b);
+    });
+    toolbar.appendChild(g);
+  });
+}
+function insertSnippet(snippet) {
+  if (!editingTextarea) {
+    let box = selection ? board.boxes.find(b => b.id === selection) : null;
+    if (!box || box.type === "image") box = createMathBox(mouseWorld.x || 80, mouseWorld.y || 80, "", true);
+    else enterEdit(box);
+    requestAnimationFrame(() => { if (editingTextarea) insertSnippet(snippet); });
+    return;
+  }
+  const ta = editingTextarea;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = ta.value.slice(start, end);
+  let text = snippet;
+  if (selected) {
+    const idx = text.indexOf(SLOT);
+    if (idx !== -1) text = text.slice(0, idx) + selected + text.slice(idx + SLOT_LEN);
+  }
+  const before = ta.value.slice(0, start), after = ta.value.slice(end);
+  ta.value = before + text + after;
+  const insertStart = start, insertEnd = start + text.length;
+  const slotsInInsert = [];
+  let searchFrom = insertStart;
+  while (true) {
+    const idx = ta.value.indexOf(SLOT, searchFrom);
+    if (idx === -1 || idx >= insertEnd) break;
+    slotsInInsert.push({ start:idx, end:idx + SLOT_LEN });
+    searchFrom = idx + SLOT_LEN;
+  }
+  if (slotsInInsert.length) selectSlot(ta, slotsInInsert[0]);
+  else { ta.setSelectionRange(insertEnd, insertEnd); ta.focus(); }
+  ta.dispatchEvent(new Event("input"));
+}
+
+/* ─── FORMULA LIBRARY ─── */
+function buildFormulaPicker() {
+  pickerBody.innerHTML = "";
+  FORMULA_LIBRARY.forEach(group => {
+    const wrap = document.createElement("div");
+    wrap.className = "fp-group";
+    const title = document.createElement("div");
+    title.className = "fp-group-title"; title.textContent = group.group;
+    wrap.appendChild(title);
+    const grid = document.createElement("div");
+    grid.className = "fp-grid";
+    group.items.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "fp-card";
+      card.dataset.search = (group.group + " " + item.name + " " + item.latex).toLowerCase();
+      const prev = document.createElement("div");
+      prev.className = "preview";
+      try { katex.render(item.latex, prev, { throwOnError:false, displayMode:false }); }
+      catch (_) { prev.textContent = item.latex; }
+      const name = document.createElement("div");
+      name.className = "name"; name.textContent = item.name;
+      card.appendChild(prev); card.appendChild(name);
+      card.addEventListener("click", () => { insertFormula(item.latex); closePicker(); });
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+    pickerBody.appendChild(wrap);
+  });
+  const total = FORMULA_LIBRARY.reduce((n, g) => n + g.items.length, 0);
+  document.getElementById("fpCount").textContent = total;
+}
+function insertFormula(latex) {
+  if (editingTextarea) {
+    const ta = editingTextarea;
+    const start = ta.selectionStart;
+    const before = ta.value.slice(0, start);
+    const after = ta.value.slice(ta.selectionEnd);
+    ta.value = before + latex + after;
+    ta.setSelectionRange(start + latex.length, start + latex.length);
+    ta.focus(); ta.dispatchEvent(new Event("input"));
+    return;
+  }
+  const r = viewport.getBoundingClientRect();
+  const wp = screenToWorld(r.left + r.width / 2 - 140, r.top + r.height / 2 - 30);
+  const box = createMathBox(wp.x, wp.y, latex, false);
+  selection = box.id; renderAll();
+}
+function openPicker() {
+  pickerEl.classList.add("open");
+  document.getElementById("fpSearch").value = "";
+  filterFormulas("");
+  setTimeout(() => document.getElementById("fpSearch").focus(), 60);
+}
+function closePicker() {
+  pickerEl.classList.remove("open");
+  document.getElementById("fpSearch").value = "";
+  filterFormulas("");
+}
+function filterFormulas(q) {
+  q = (q || "").trim().toLowerCase();
+  const groups = pickerBody.querySelectorAll(".fp-group");
+  let anyMatch = false;
+  groups.forEach(g => {
+    const cards = g.querySelectorAll(".fp-card");
+    let groupHasMatch = false;
+    cards.forEach(c => {
+      const hit = !q || c.dataset.search.includes(q);
+      c.style.display = hit ? "" : "none";
+      if (hit) groupHasMatch = true;
+    });
+    g.style.display = groupHasMatch ? "" : "none";
+    if (groupHasMatch) anyMatch = true;
+  });
+  let empty = pickerBody.querySelector(".fp-empty");
+  if (!anyMatch) {
+    if (!empty) { empty = document.createElement("div"); empty.className = "fp-empty"; pickerBody.appendChild(empty); }
+    empty.textContent = `No formulas match "${q}".`;
+  } else if (empty) empty.remove();
+}
+
+/* ─── TOOLTIP ─── */
+const tooltipEl = document.getElementById("tooltip");
+function showTooltip(btn, latex) {
+  tooltipEl.innerHTML = "";
+  try { katex.render(latex, tooltipEl, { displayMode:true, throwOnError:false }); }
+  catch (_) { tooltipEl.textContent = latex; }
+  tooltipEl.style.display = "block";
+  const r = btn.getBoundingClientRect();
+  const tw = tooltipEl.offsetWidth;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(8, Math.min(window.innerWidth - tw - 8, left));
+  tooltipEl.style.left = left + "px";
+  tooltipEl.style.top  = (r.bottom + 6) + "px";
+}
+function hideTooltip() { tooltipEl.style.display = "none"; }
+
+/* ─── BOARD SWITCHER ─── */
+function buildBoardSelect() {
+  const sel = document.getElementById("boardSelect");
+  sel.innerHTML = "";
+  Object.keys(state.boards).forEach(name => {
+    const o = document.createElement("option");
+    o.value = name; o.textContent = name;
+    if (name === state.currentBoard) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+function switchBoard(name) {
+  commitEdit(true);
+  state.currentBoard = name;
+  board = state.boards[name];
+  selection = null; editing = null; editingTextarea = null;
+  undoStack = []; redoStack = [];
+  applyTransform(); renderAll(); save();
+  buildBoardSelect();
+}
+
+/* ─── TOPBAR ─── */
+function bindTopbar() {
+  document.getElementById("formulasBtn").onclick = () => {
+    if (pickerEl.classList.contains("open")) closePicker(); else openPicker();
+  };
+  document.getElementById("fpClose").onclick = closePicker;
+  document.getElementById("undoBtn").onclick = undo;
+  document.getElementById("redoBtn").onclick = redo;
+  document.getElementById("zoomIn").onclick  = () => zoomAt(1.25);
+  document.getElementById("zoomOut").onclick = () => zoomAt(1 / 1.25);
+  document.getElementById("zoomFit").onclick = fitContent;
+  document.getElementById("zoomLabel").onclick = () => { board.zoom = 1; applyTransform(); save(); };
+  document.getElementById("renameBoard").onclick = () => {
+    const old = state.currentBoard;
+    const name = prompt("Rename board:", old);
+    if (!name || name === old) return;
+    if (state.boards[name]) { toast("A board with that name already exists"); return; }
+    const nb = {};
+    Object.keys(state.boards).forEach(k => { nb[k === old ? name : k] = state.boards[k]; });
+    state.boards = nb; state.currentBoard = name; board = nb[name];
+    save(); buildBoardSelect();
+  };
+  document.getElementById("fpSearch").addEventListener("input", e => filterFormulas(e.target.value));
+  document.getElementById("fpSearch").addEventListener("keydown", e => {
+    if (e.key === "Escape") { e.preventDefault(); closePicker(); }
+  });
+  document.getElementById("boardSelect").onchange = e => switchBoard(e.target.value);
+  document.getElementById("newBoard").onclick = () => {
+    const name = prompt("Board name:", "Board " + (Object.keys(state.boards).length + 1));
+    if (!name || state.boards[name]) return;
+    state.boards[name] = { boxes:[], pan:{x:60,y:60}, zoom:1 };
+    switchBoard(name);
+  };
+  document.getElementById("delBoard").onclick = () => {
+    const names = Object.keys(state.boards);
+    if (names.length <= 1) { alert("Can't delete the last board."); return; }
+    if (!confirm(`Delete board "${state.currentBoard}"?`)) return;
+    delete state.boards[state.currentBoard];
+    switchBoard(Object.keys(state.boards)[0]);
+  };
+  document.getElementById("insertImage").onclick = () => {
+    pickImageFile(f => insertImageFile(f, mouseWorld.x, mouseWorld.y));
+  };
+  document.getElementById("exportPng").onclick = async () => {
+    if (typeof htmlToImage === "undefined") { alert("PNG library didn't load. Use Print → Save as PDF instead."); return; }
+    commitEdit(true); selection = null; editing = null; renderAll();
+    await new Promise(r => setTimeout(r, 40));
+    try {
+      const dataUrl = await htmlToImage.toPng(viewport, { backgroundColor:"#fbfaf7", pixelRatio:2, cacheBust:true });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = (state.currentBoard || "math") + ".png";
+      a.click();
+    } catch (e) { alert("PNG export failed: " + e.message); }
+  };
+  document.getElementById("exportJson").onclick = () => {
+    commitEdit(true);
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mathnotepad-boards.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 500);
+  };
+  document.getElementById("importJson").onclick = () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".json,application/json";
+    inp.onchange = () => {
+      const file = inp.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (!data.boards || !data.currentBoard) throw new Error("Invalid format");
+          const map = {};
+          Object.keys(data.boards).forEach(n => {
+            const b = data.boards[n];
+            b.boxes = b.boxes || []; b.pan = b.pan || { x:60, y:60 }; b.zoom = b.zoom || 1;
+            let nn = n, c = 2;
+            while (state.boards[nn]) nn = n + " (" + (c++) + ")";
+            state.boards[nn] = b; map[n] = nn;
+          });
+          switchBoard(map[data.currentBoard] || Object.values(map)[0]);
+        } catch (e) { alert("Import failed: " + e.message); }
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
+  };
+  document.getElementById("printBtn").onclick = () => {
+    commitEdit(true); selection = null; editing = null; renderAll();
+    setTimeout(() => window.print(), 60);
+  };
+  document.getElementById("helpBtn").onclick = () => {
+    alert(`MATH NOTEPAD — quick help
+
+INLINE EDITING
+• Hover a formula → letters/numbers highlight yellow.
+• Click one → type your new value → Enter. Done.
+• Tab / Shift+Tab jumps to the next / previous one.
+• Shift+Enter changes EVERY matching letter in that formula.
+
+RAW LaTeX (advanced)
+• Double-click a blank part of a box to open the textarea.
+
+FORMULA LIBRARY
+• "∑ Formulas" in the top bar. 100+ formulas, searchable.
+
+TEMPLATES
+• Toolbar buttons insert a template with fillable □ slots.
+
+IMAGES
+• Ctrl+V paste, drag-drop, or "Image" button.
+
+KEYS
+  Escape  commit / deselect / close formula library
+  N       new math box at centre
+  Del     delete selected box
+  Ctrl+D  duplicate
+  Ctrl+C/V copy / paste
+  Ctrl+Z/Y undo / redo
+  Ctrl+S  save
+  Ctrl+0  reset zoom
+  Arrows  nudge 1px (Shift = 10px)
+
+Pan: scroll, drag empty grid, middle-drag, or space+drag.
+Zoom: Ctrl + scroll, or the buttons bottom-right (Fit = show everything).
+TeX button on a box copies its LaTeX.`);
+  };
+}
+
+/* ─── KEYBOARD ─── */
+function bindKeyboard() {
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && pickerEl.classList.contains("open")) { e.preventDefault(); closePicker(); return; }
+    const inField = isTextField(e.target);
+    const mod = e.ctrlKey || e.metaKey;
+
+    if (e.key === "Escape") {
+      if (editing) { e.preventDefault(); commitEdit(); renderAll(); }
+      else if (selection) { selection = null; renderAll(); }
+      return;
+    }
+    if (mod && e.key.toLowerCase() === "s") {
+      e.preventDefault(); if (editing) commitEdit(); save(); renderAll(); return;
+    }
+    if (mod && e.key.toLowerCase() === "z" && !inField) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && e.key.toLowerCase() === "y" && !inField) { e.preventDefault(); redo(); return; }
+    if (!inField && !mod && e.key.toLowerCase() === "n") {
+      e.preventDefault();
+      const r = viewport.getBoundingClientRect();
+      const wp = screenToWorld(r.left + r.width / 2, r.top + r.height / 2);
+      createMathBox(wp.x, wp.y, "", true); return;
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && !inField && selection) {
+      e.preventDefault();
+      const box = board.boxes.find(b => b.id === selection);
+      if (box) deleteBox(box); return;
+    }
+    if (mod && e.key.toLowerCase() === "d" && !inField && selection) {
+      e.preventDefault();
+      const box = board.boxes.find(b => b.id === selection);
+      if (box) duplicateBox(box); return;
+    }
+    if (mod && e.key.toLowerCase() === "c" && !inField && selection) {
+      const box = board.boxes.find(b => b.id === selection);
+      if (box) { if (box.type === "image") clipboardImage = { ...box }; else clipboard = { ...box }; }
+      return;
+    }
+    if (mod && e.key.toLowerCase() === "v" && !inField) {
+      const src = clipboardImage || clipboard;
+      if (src) {
+        e.preventDefault();
+        const copy = { ...src, id:newId(), x:src.x + 24, y:src.y + 24 };
+        pushUndo(); board.boxes.push(copy); selection = copy.id;
+        renderAll(); save();
+      }
+      return;
+    }
+    if (mod && e.key === "0") { e.preventDefault(); board.zoom = 1; applyTransform(); save(); return; }
+    if (!inField && selection && e.key.startsWith("Arrow")) {
+      const box = board.boxes.find(b => b.id === selection);
+      if (!box) return;
+      const step = e.shiftKey ? 10 : 1;
+      let dx = 0, dy = 0;
+      if (e.key === "ArrowLeft")  dx = -step;
+      if (e.key === "ArrowRight") dx =  step;
+      if (e.key === "ArrowUp")    dy = -step;
+      if (e.key === "ArrowDown")  dy =  step;
+      if (dx || dy) { e.preventDefault(); pushUndo(); box.x += dx; box.y += dy; renderBox(box); save(); }
+    }
+  });
+}
+
+/* ─── BOOT ─── */
+function whenReady() {
+  if (typeof katex === "undefined") {
+    document.body.innerHTML = '<div style="padding:2rem;font:14px/1.6 monospace;color:#c0392b">KaTeX failed to load. Connect to the internet once, then reload.</div>';
+    return;
+  }
+  boot();
+}
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  setTimeout(whenReady, 0);
+} else {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(whenReady, 0));
+}
+</script>
+</body>
+</html>
